@@ -4,6 +4,7 @@ import (
 	"coolapk"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -34,7 +35,9 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 	}
 	if strings.Contains(r.UserAgent(), "bot") || strings.Contains(r.UserAgent(), "Bot") {
-		_, _ = fmt.Fprintf(w, fmt.Sprintf(html, feedDetail.Data.Message))
+		re := regexp.MustCompile("\\<[\\S\\s]+?\\>")
+		message := re.ReplaceAllString(feedDetail.Data.Message, "")
+		_, _ = fmt.Fprintf(w, fmt.Sprintf(html, message))
 	} else {
 		http.Redirect(w, r, feedDetail.Data.ShareUrl, http.StatusMovedPermanently)
 	}
