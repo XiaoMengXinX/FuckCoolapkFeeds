@@ -24,7 +24,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 		return
 	}
-	feedID, _ := strconv.Atoi(strings.Trim(r.URL.Path[1:], "/feed/"))
+	feedID, _ := strconv.Atoi(strings.Split(strings.Trim(r.URL.Path[1:], "/feed/"), "?")[0])
 	feedDetail, err := coolapk.GetFeedDetail(feedID)
 	if err != nil {
 		w.WriteHeader(500)
