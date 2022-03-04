@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func UrlHandler(w http.ResponseWriter, r *http.Request) {
@@ -12,7 +13,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 		return
 	}
-	feedID, _ := strconv.Atoi(r.URL.Path[1:])
+	feedID, _ := strconv.Atoi(strings.Trim(r.URL.Path[1:], "/feed/"))
 	feedDetail, err := coolapk.GetFeedDetail(feedID)
 	if err != nil {
 		w.WriteHeader(500)
