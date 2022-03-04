@@ -33,7 +33,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	if feedDetail.Data.ShareUrl == "" {
 		_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 	}
-	if strings.Contains(r.UserAgent(), "bot") && strings.Contains(r.UserAgent(), "Bot") {
+	if strings.Contains(r.UserAgent(), "bot") || strings.Contains(r.UserAgent(), "Bot") {
 		_, _ = fmt.Fprintf(w, fmt.Sprintf(html, feedDetail.Data.Message))
 	} else {
 		http.Redirect(w, r, feedDetail.Data.ShareUrl, http.StatusMovedPermanently)
