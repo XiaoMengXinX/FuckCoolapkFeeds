@@ -15,7 +15,7 @@ var html = `
 <title>酷安动态</title>
 <meta name="description" content="%s">
 <meta property="og:title" content="酷安动态">
-<link rel="icon" sizes="any" mask="" href="https://static.coolapk.com/static/web/v8/images/header-logo.png">
+<link rel="shortcut icon" href="https://static.coolapk.com/static/web/v8/images/header-logo.png">
 </head>
 `
 
