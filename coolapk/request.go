@@ -1,6 +1,7 @@
 package coolapk
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -8,13 +9,13 @@ import (
 
 var userAgent = `Dalvik/2.1.0 (Linux; U; Android 11) +CoolMarket/10.5.3-2009271`
 
-func request(path string, paramters map[string]string) (response []byte, err error) {
+func request(path string, paramters map[string]string, ctx context.Context) (response []byte, err error) {
 	params := url.Values{}
 	for key, value := range paramters {
 		params.Add(key, value)
 	}
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://api.coolapk.com"+path+"?"+params.Encode(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.coolapk.com"+path+"?"+params.Encode(), nil)
 	if err != nil {
 		return
 	}
