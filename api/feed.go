@@ -94,11 +94,12 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		data.ShareUrl = feedDetail.Data.ShareUrl
 		data.Message = feedDetail.Data.Message
 		data.CreatedAt = time.Now()
-	} else {
-		data.ReqTimes++
 	}
+	data.ReqTimes++
 
 	if collection != nil {
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
+		defer cancel()
 		_, err = collection.UpdateOne(ctx, bson.M{"id": data.ID}, bson.M{"$set": data}, options.Update().SetUpsert(true))
 	}
 
