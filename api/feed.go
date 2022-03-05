@@ -63,15 +63,15 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
-	defer cancel()
-
 	var data feedData
+	var e error
 	if collection != nil {
-		err = collection.FindOne(ctx, bson.M{"id": fmt.Sprintf("%d", feedID)}).Decode(&data)
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
+		defer cancel()
+		e = collection.FindOne(ctx, bson.M{"id": fmt.Sprintf("%d", feedID)}).Decode(&data)
 	}
 
-	if err != nil || collection == nil {
+	if e != nil || collection == nil {
 		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
 		defer cancel()
 
@@ -100,7 +100,11 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	if collection != nil {
 		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
 		defer cancel()
-		_, err = collection.UpdateOne(ctx, bson.M{"id": data.ID}, bson.M{"$set": data}, options.Update().SetUpsert(true))
+		if e != nil {
+			_, err = collection.InsertOne(ctx, data)
+		} else {
+			_, err = collection.UpdateOne(ctx, bson.M{"id": data.ID}, bson.M{"$set": bson.M{"requested_times": data.ReqTimes}})
+		}
 	}
 
 	if strings.Contains(r.UserAgent(), "bot") || strings.Contains(r.UserAgent(), "Bot") {
