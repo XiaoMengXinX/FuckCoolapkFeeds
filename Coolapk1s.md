@@ -1,4 +1,4 @@
-# FuckCoolapkFeeds
+# Coolapk1s
 
 Remove Coolapk tracking parameters and provide post preview without intervening sharing.
 
@@ -13,3 +13,11 @@ https://www.coolapk.com/feed/14640271
 ↓
 
 https://www.coolapk1s.com/feed/14640271
+
+## About
+
+[FuckCoolapkFeeds](https://github.com/XiaoMengXinX/FuckCoolapkFeeds) has opend source under [GPL-3.0](https://github.com/XiaoMengXinX/FuckCoolapkFeeds/blob/master/LICENSE)
+
+Proudly made with [Go](https://go.dev)
+
+Powered by [Vercel](https://vercel.com) with ❤️

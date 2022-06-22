@@ -112,7 +112,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.UserAgent(), "bot") || strings.Contains(r.UserAgent(), "Bot") {
 		re := regexp.MustCompile("\\<[\\S\\s]+?\\>")
 		message := re.ReplaceAllString(data.Message, "")
-		_, _ = fmt.Fprintf(w, fmt.Sprintf(html, message))
+		_, _ = fmt.Fprint(w, fmt.Sprintf(html, message))
 	} else {
 		http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
 	}

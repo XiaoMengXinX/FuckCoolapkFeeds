@@ -3,6 +3,10 @@
     {
       "src": "/feed/.*",
       "dest": "/api/feed"
+    },
+    {
+      "src": "/.*",
+      "dest": "/Coolapk1s.html"
     }
   ]
 }
