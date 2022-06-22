@@ -2,17 +2,18 @@ package api
 
 import (
 	"context"
-	"coolapk"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	coolapk "github.com/XiaoMengXinX/CoolapkApi-Go"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type feedData struct {
@@ -75,7 +76,8 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
 		defer cancel()
 
-		feedDetail, err := coolapk.GetFeedDetailWithContext(feedID, ctx)
+		c := coolapk.New()
+		feedDetail, err := c.GetFeedDetailWithCtx(feedID, ctx)
 		if err != nil { // 超时刷新重试
 			scheme := "http://"
 			if r.TLS != nil {
