@@ -16,8 +16,8 @@ https://www.coolapk1s.com/feed/14640271
 
 ## About
 
-[FuckCoolapkFeeds](https://github.com/XiaoMengXinX/FuckCoolapkFeeds) has opend source under [GPL-3.0](https://github.com/XiaoMengXinX/FuckCoolapkFeeds/blob/master/LICENSE)
+[FuckCoolapkFeeds](https://github.com/XiaoMengXinX/FuckCoolapkFeeds) was open-source under [GPL-3.0](https://github.com/XiaoMengXinX/FuckCoolapkFeeds/blob/master/LICENSE)
 
-Proudly made with [Go](https://go.dev)
+Proudly made by [Go](https://go.dev) with ❤️
 
-Powered by [Vercel](https://vercel.com) with ❤️
+Powered by [Vercel](https://vercel.com)
