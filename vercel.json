@@ -9,8 +9,9 @@
       "dest": "/Coolapk1s.html"
     },
     {
-      "src": "/(?<path>.*)",
-      "dest": "https://www.coolapk.com/$path"
+      "src": "/(.*)",
+      "headers": { "Location": "https://www.coolapk.com/$1" },
+      "status": 308
     }
   ]
 }
