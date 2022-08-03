@@ -5,7 +5,7 @@
       "dest": "/api/feed"
     },
     {
-      "src": "/.*",
+      "src": "/",
       "dest": "/Coolapk1s.html"
     },
     {
