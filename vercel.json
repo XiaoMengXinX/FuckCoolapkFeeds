@@ -9,7 +9,7 @@
       "dest": "/Coolapk1s.html"
     },
     {
-      "src": "/(?<path>+)",
+      "src": "/(?<path>)",
       "dest": "https://www.coolapk.com/$path"
     }
   ]
