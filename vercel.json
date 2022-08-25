@@ -5,8 +5,13 @@
       "dest": "/api/feed"
     },
     {
-      "src": "/.*",
+      "src": "/",
       "dest": "/Coolapk1s.html"
+    },
+    {
+      "src": "/(.*)",
+      "headers": { "Location": "https://www.coolapk.com/$1" },
+      "status": 308
     }
   ]
 }
