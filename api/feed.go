@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -31,9 +32,10 @@ var htmlTmpl = `
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>酷安动态</title>
-<meta name="description" content="{{.Message}}">
+<meta property="og:description" content="{{.Message}}">
 <meta property="og:title" content="酷安动态">
-<meta property="og:image" content="{{.Pic}}">
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="twitter:image" content="{{.Pic}}">
 </head>
 `
 
@@ -94,6 +96,9 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 			return
 		}
+
+		b, _ := json.Marshal(feedDetail)
+		fmt.Println(string(b))
 
 		if feedDetail.Data.MessageCover != "" {
 			data.PicURL = feedDetail.Data.MessageCover
