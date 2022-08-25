@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"regexp"
@@ -20,17 +21,19 @@ type feedData struct {
 	ID        string    `bson:"id"`
 	ShareUrl  string    `bson:"share_url"`
 	Message   string    `bson:"message"`
+	PicURL    string    `bson:"pic_url"`
 	ReqTimes  int64     `bson:"requested_times"`
 	CreatedAt time.Time `bson:"created_at"`
 }
 
 var collection *mongo.Collection
-var html = `
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta http-equiv="X-UA-Compatible" content="ie=edge">
+var htmlTmpl = `
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>酷安动态</title>
-<meta name="description" content="%s">
+<meta name="description" content="{{.Message}}">
 <meta property="og:title" content="酷安动态">
+<meta property="og:image" content="{{.Pic}}">
 </head>
 `
 
@@ -92,6 +95,14 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if feedDetail.Data.MessageCover != "" {
+			data.PicURL = feedDetail.Data.MessageCover
+		} else if feedDetail.Data.Pic != "" {
+			data.PicURL = feedDetail.Data.Pic
+		} else if len(feedDetail.Data.PicArr) != 0 {
+			data.PicURL = feedDetail.Data.PicArr[0]
+		}
+
 		data.ID = fmt.Sprintf("%d", feedID)
 		data.ShareUrl = feedDetail.Data.ShareUrl
 		data.Message = feedDetail.Data.Message
@@ -112,7 +123,14 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.UserAgent(), "bot") || strings.Contains(r.UserAgent(), "Bot") {
 		re := regexp.MustCompile("\\<[\\S\\s]+?\\>")
 		message := re.ReplaceAllString(data.Message, "")
-		_, _ = fmt.Fprint(w, fmt.Sprintf(html, message))
+		t, _ := template.New("index").Parse(htmlTmpl)
+		_ = t.Execute(w, struct {
+			Message string
+			Pic     string
+		}{
+			Message: message,
+			Pic:     data.PicURL,
+		})
 	} else {
 		http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
 	}
