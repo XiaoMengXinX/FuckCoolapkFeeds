@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -96,9 +95,6 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 			return
 		}
-
-		b, _ := json.Marshal(feedDetail)
-		fmt.Println(string(b))
 
 		if feedDetail.Data.MessageCover != "" {
 			data.PicURL = feedDetail.Data.MessageCover
