@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -94,7 +93,6 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if feedDetail.Data.ShareUrl == "" {
 			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
-			log.Println(feedDetail.RawData)
 			return
 		}
 
