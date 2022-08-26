@@ -30,7 +30,6 @@ var collection *mongo.Collection
 var htmlTmpl = `
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>酷安动态</title>
 <meta property="og:description" content="{{.Message}}">
 <meta property="og:title" content="酷安动态">
 <meta name="twitter:card" content="summary_large_image" />
