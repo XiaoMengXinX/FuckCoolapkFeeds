@@ -92,6 +92,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if feedDetail.Data.ShareUrl == "" {
+			fmt.Printf("%+v", feedDetail.RawData)
 			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 			return
 		}
