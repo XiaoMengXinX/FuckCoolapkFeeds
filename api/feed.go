@@ -34,6 +34,7 @@ var htmlTmpl = `
 <meta property="og:title" content="酷安动态">
 <meta name="twitter:card" content="summary_large_image" />
 <meta property="twitter:image" content="{{.Pic}}">
+<meta property="twitter:image" content="{{.Pic}}.m.jpg">
 <meta property="twitter:image" content="{{.Pic}}.xs.jpg">
 </head>
 `
