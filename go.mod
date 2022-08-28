@@ -3,7 +3,7 @@ module api
 go 1.17
 
 require (
-	github.com/XiaoMengXinX/CoolapkApi-Go v0.0.0-20220827021110-3d10e8fb81ed
+	github.com/XiaoMengXinX/CoolapkApi-Go v0.0.0-20220828103300-eb756e625713
 	go.mongodb.org/mongo-driver v1.8.4
 )
 
