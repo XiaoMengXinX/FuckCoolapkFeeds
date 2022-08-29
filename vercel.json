@@ -5,6 +5,10 @@
       "dest": "/api/feed"
     },
     {
+      "src": "/status",
+      "dest": "/api/status"
+    },
+    {
       "src": "/",
       "dest": "/Coolapk1s.html"
     },
