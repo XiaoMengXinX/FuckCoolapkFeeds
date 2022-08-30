@@ -108,9 +108,21 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		if feedDetail.Data.ShareUrl == "" {
 			if bot.Token != "" {
 				loc, _ := time.LoadLocation("Asia/Hong_Kong")
-				var jsonData interface{}
-				_ = json.Unmarshal([]byte(feedDetail.Response), &jsonData)
-				jsonBytes, _ := json.MarshalIndent(jsonData, "", "  ")
+				var respJson interface{}
+				_ = json.Unmarshal([]byte(feedDetail.Response), &respJson)
+				jsonBytes, _ := json.MarshalIndent(struct {
+					ClientInfo interface{} `json:"client_info"`
+					UserAgent  interface{} `json:"user_agent"`
+					DeviceID   interface{} `json:"device_id"`
+					Token      interface{} `json:"token"`
+					Response   interface{} `json:"response"`
+				}{
+					ClientInfo: c.FakeClient,
+					UserAgent:  c.UserAgent,
+					DeviceID:   c.DeviceID,
+					Token:      c.Token,
+					Response:   respJson,
+				}, "", "  ")
 				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
 					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
 					Bytes: jsonBytes,
