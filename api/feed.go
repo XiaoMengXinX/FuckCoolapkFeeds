@@ -51,6 +51,20 @@ var htmlTmpl = `
 <!-- <meta property="twitter:image" content="{{.Pic}}.xs.jpg"> -->
 </head>
 `
+var htmlTmpl2 = `
+<script type="text/javascript"> 
+    var t = 3;
+    setInterval("refer()", 1000);
+    function refer() {
+        if (t == 0){
+            location = {{.URL}};
+        }
+        document.getElementById('show').innerHTML = {{.Message}} + t + " 秒后跳转到原链接";
+        t--;
+    } 
+</script>
+<span id="show"></span>
+`
 
 func connectDB(uri string) (*mongo.Client, error) {
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
@@ -132,7 +146,18 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				_, _ = fmt.Fprintf(w, "Invaid Feed ID: %s\nError Code: %d", feedDetail.Message, feedDetail.Status)
 			*/
-			http.Redirect(w, r, fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID), http.StatusMovedPermanently)
+			message := "获取 ShareKey 失败"
+			if feedDetail.Message != "" {
+				message += "：" + feedDetail.Message
+			}
+			t, _ := template.New("index").Parse(htmlTmpl2)
+			_ = t.Execute(w, struct {
+				Message string
+				URL     string
+			}{
+				Message: message + "<br>",
+				URL:     fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID),
+			})
 			return
 		}
 
