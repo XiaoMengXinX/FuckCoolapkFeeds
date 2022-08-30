@@ -104,7 +104,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			if bot.Token != "" {
 				loc, _ := time.LoadLocation("Asia/Hong_Kong")
 				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
-					Name:  fmt.Sprintf("%d_%d.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
+					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
 					Bytes: []byte(feedDetail.Response),
 				})
 				_, err = bot.Send(msg)
