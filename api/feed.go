@@ -104,6 +104,8 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		e = collection.FindOne(ctx, bson.M{"id": fmt.Sprintf("%d", feedID)}).Decode(&data)
 	}
 
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	if e != nil || collection == nil {
 		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
 		defer cancel()
