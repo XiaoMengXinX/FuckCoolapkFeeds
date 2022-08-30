@@ -125,6 +125,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
 					Bytes: jsonBytes,
 				})
+				msg.Caption = fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID)
 				_, err = bot.Send(msg)
 			}
 			/*
