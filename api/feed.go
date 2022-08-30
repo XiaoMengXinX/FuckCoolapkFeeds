@@ -113,7 +113,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 				})
 				_, err = bot.Send(msg)
 			}
-			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
+			_, _ = fmt.Fprintf(w, "Invaid Feed ID: %s\nError Code: %d", feedDetail.Message, feedDetail.Status)
 			return
 		}
 
