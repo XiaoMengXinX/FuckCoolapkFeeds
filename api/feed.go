@@ -112,7 +112,6 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 					Bytes: unescapeUnicode(feedDetail.Response),
 				})
 				_, err = bot.Send(msg)
-				fmt.Println(err)
 			}
 			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 			return
