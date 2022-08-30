@@ -120,7 +120,6 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 					ClientInfo: c.FakeClient,
 					UserAgent:  c.UserAgent,
 					DeviceID:   c.DeviceID,
-					Token:      c.Token,
 					Response:   respJson,
 				}, "", "  ")
 				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
