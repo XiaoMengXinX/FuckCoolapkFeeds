@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -107,14 +108,20 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		if feedDetail.Data.ShareUrl == "" {
 			if bot.Token != "" {
 				loc, _ := time.LoadLocation("Asia/Hong_Kong")
+				var jsonData interface{}
+				_ = json.Unmarshal([]byte(feedDetail.Response), &jsonData)
+				jsonBytes, _ := json.MarshalIndent(jsonData, "", "  ")
 				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
 					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
-					Bytes: unescapeUnicode(feedDetail.Response),
+					Bytes: jsonBytes,
 				})
 				_, err = bot.Send(msg)
 			}
-			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			_, _ = fmt.Fprintf(w, "Invaid Feed ID: %s\nError Code: %d", feedDetail.Message, feedDetail.Status)
+			/*
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				_, _ = fmt.Fprintf(w, "Invaid Feed ID: %s\nError Code: %d", feedDetail.Message, feedDetail.Status)
+			*/
+			http.Redirect(w, r, fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID), http.StatusMovedPermanently)
 			return
 		}
 
@@ -158,12 +165,4 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
 	}
 	return
-}
-
-func unescapeUnicode(raw string) []byte {
-	str, err := strconv.Unquote(strings.Replace(strconv.Quote(raw), `\\u`, `\u`, -1))
-	if err != nil {
-		return nil
-	}
-	return []byte(str)
 }
