@@ -12,10 +12,18 @@ import (
 	"time"
 
 	coolapk "github.com/XiaoMengXinX/CoolapkApi-Go"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+var bot = &tgbotapi.BotAPI{
+	Token:  os.Getenv("BOT_TOKEN"),
+	Client: &http.Client{},
+	Buffer: 100,
+}
+var chatID, _ = strconv.Atoi(os.Getenv("CHAT_ID"))
 
 type feedData struct {
 	ID        string    `bson:"id"`
@@ -93,7 +101,13 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if feedDetail.Data.ShareUrl == "" {
-			fmt.Printf("%+v", feedDetail.RawData)
+			if bot.Token != "" {
+				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
+					Name:  "onetext.png",
+					Bytes: []byte(feedDetail.Response),
+				})
+				_, err = bot.Send(msg)
+			}
 			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 			return
 		}
