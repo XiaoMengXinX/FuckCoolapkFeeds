@@ -25,6 +25,10 @@ var bot = &tgbotapi.BotAPI{
 }
 var chatID, _ = strconv.Atoi(os.Getenv("CHAT_ID"))
 
+func init() {
+	bot.SetAPIEndpoint(tgbotapi.APIEndpoint)
+}
+
 type feedData struct {
 	ID        string    `bson:"id"`
 	ShareUrl  string    `bson:"share_url"`
@@ -105,9 +109,10 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 				loc, _ := time.LoadLocation("Asia/Hong_Kong")
 				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
 					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
-					Bytes: []byte(feedDetail.Response),
+					Bytes: unescapeUnicode(feedDetail.Response),
 				})
 				_, err = bot.Send(msg)
+				fmt.Println(err)
 			}
 			_, _ = fmt.Fprintf(w, "Invaid Feed ID")
 			return
@@ -153,4 +158,12 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
 	}
 	return
+}
+
+func unescapeUnicode(raw string) []byte {
+	str, err := strconv.Unquote(strings.Replace(strconv.Quote(raw), `\\u`, `\u`, -1))
+	if err != nil {
+		return nil
+	}
+	return []byte(str)
 }
