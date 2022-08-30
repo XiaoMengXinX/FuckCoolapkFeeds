@@ -114,7 +114,6 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 					ClientInfo interface{} `json:"client_info"`
 					UserAgent  interface{} `json:"user_agent"`
 					DeviceID   interface{} `json:"device_id"`
-					Token      interface{} `json:"token"`
 					Response   interface{} `json:"response"`
 				}{
 					ClientInfo: c.FakeClient,
