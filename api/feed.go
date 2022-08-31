@@ -40,8 +40,7 @@ type feedData struct {
 }
 
 var collection *mongo.Collection
-var htmlTmpl = `
-<head>
+var htmlTmpl = `<head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta property="og:description" content="{{.Message}}">
 <meta property="og:title" content="酷安动态">
@@ -51,19 +50,22 @@ var htmlTmpl = `
 <!-- <meta property="twitter:image" content="{{.Pic}}.xs.jpg"> -->
 </head>
 `
-var htmlTmpl2 = `
-<script type="text/javascript"> 
+var htmlTmpl2 = `<script type="text/javascript"> 
     var t = 3;
     setInterval("refer()", 1000);
     function refer() {
         if (t == 0){
-            location = {{.URL}};
+            window.location.replace("{{.URL}}");
         }
         document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
         t--;
-    } 
+    }
 </script>
 <span id="show"></span>
+`
+var htmlTmpl3 = `<script type="text/javascript"> 
+	window.location.replace("{{.}}");
+</script>
 `
 
 func connectDB(uri string) (*mongo.Client, error) {
@@ -105,6 +107,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	feedURL := fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID)
 
 	if e != nil || collection == nil {
 		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
@@ -141,7 +144,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
 					Bytes: jsonBytes,
 				})
-				msg.Caption = fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID)
+				msg.Caption = feedURL
 				_, err = bot.Send(msg)
 			}
 			/*
@@ -158,7 +161,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 				URL     string
 			}{
 				Message: message + "<br>",
-				URL:     fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID),
+				URL:     feedURL,
 			})
 			return
 		}
@@ -200,7 +203,9 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			Pic:     data.PicURL,
 		})
 	} else {
-		http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
+		//http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
+		t, _ := template.New("index").Parse(htmlTmpl3)
+		_ = t.Execute(w, data.ShareUrl)
 	}
 	return
 }
