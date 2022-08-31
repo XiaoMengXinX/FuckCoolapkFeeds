@@ -55,7 +55,7 @@ var htmlTmpl2 = `<script type="text/javascript">
     setInterval("refer()", 1000);
     function refer() {
         if (t == 0){
-            document.body.appendChild(document.createElement('iframe')).src='javascript:"<script>top.location.replace(\''+{{.URL}}+'\')<\/script>"';
+            document.body.appendChild(document.createElement('iframe')).src='javascript:"<script>top.location.replace(\'' + {{.URL}} + '\')<\/script>"';
         }
         document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
         t--;
@@ -63,9 +63,14 @@ var htmlTmpl2 = `<script type="text/javascript">
 </script>
 <span id="show"></span>
 `
-var htmlTmpl3 = `<script type="text/javascript"> 
-	document.body.appendChild(document.createElement('iframe')).src='javascript:"<script>top.location.replace(\''+{{.}}+'\')<\/script>"';
-</script>
+var htmlTmpl3 = `<!DOCTYPE html>
+<html lang="zh">
+	<body>
+		<script type="text/javascript">
+			document.body.appendChild(document.createElement('iframe')).src='javascript:"<script>top.location.replace(\'' + {{.}} + '\')<\/script>"';
+		</script>
+	</body>
+</html>
 `
 
 func connectDB(uri string) (*mongo.Client, error) {
