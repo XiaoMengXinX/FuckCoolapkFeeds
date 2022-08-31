@@ -55,7 +55,7 @@ var htmlTmpl2 = `<script type="text/javascript">
     setInterval("refer()", 1000);
     function refer() {
         if (t == 0){
-            window.location.replace("{{.URL}}");
+            window.open('javascript:window.name;', '<script>location.replace("{{.URL}}")<\/script>');
         }
         document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
         t--;
@@ -64,7 +64,7 @@ var htmlTmpl2 = `<script type="text/javascript">
 <span id="show"></span>
 `
 var htmlTmpl3 = `<script type="text/javascript"> 
-	window.location.replace("{{.}}");
+	window.open('javascript:window.name;', '<script>location.replace("{{.}}")<\/script>');
 </script>
 `
 
