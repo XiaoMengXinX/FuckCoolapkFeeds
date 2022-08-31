@@ -59,7 +59,7 @@ var htmlTmpl2 = `
         if (t == 0){
             location = {{.URL}};
         }
-        document.getElementById('show').innerHTML = {{.Message}} + t + " 秒后跳转到原链接";
+        document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
         t--;
     } 
 </script>
