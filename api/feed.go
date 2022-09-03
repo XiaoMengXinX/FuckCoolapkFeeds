@@ -149,7 +149,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
 					Bytes: jsonBytes,
 				})
-				msg.Caption = feedURL + "\n" + feedURL[:18] + "1s" + feedURL[19:]
+				msg.Caption = feedURL + "\n" + feedURL[:19] + "1s" + feedURL[19:]
 				_, err = bot.Send(msg)
 			}
 			/*
