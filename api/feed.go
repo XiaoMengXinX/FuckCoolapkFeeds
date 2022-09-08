@@ -56,7 +56,7 @@ var htmlTmpl2 = `<!DOCTYPE html>
 		<script type="text/javascript"> 
 			var t = 3;
 			setInterval("countdown()", 1000);
-			setTimeout(, 3000); 
+			setTimeout("redirect()", 3000); 
 			function redirect() {
 				window.location.replace("/redirect?url={{.URL}}");
 			}
