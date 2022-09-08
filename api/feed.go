@@ -50,22 +50,32 @@ var htmlTmpl = `<head>
 <!-- <meta property="twitter:image" content="{{.Pic}}.xs.jpg"> -->
 </head>
 `
-var htmlTmpl2 = `<script type="text/javascript"> 
-    var t = 3;
-    setInterval("refer()", 1000);
-    function refer() {
-        if (t == 0){
-            window.location.replace("/?url={{.URL}}");
-        }
-        document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
-        t--;
-    }
-</script>
-<span id="show"></span>
+var htmlTmpl2 = `<!DOCTYPE html>
+<html lang="zh">
+	<head>
+		<meta http-equiv="refresh" content="3;url=/?url={{.URL}}" />
+	</head>
+	<body>
+		<script type="text/javascript"> 
+			var t = 3;
+			setInterval("refer()", 1000);
+			function refer() {
+				document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
+				t--;
+			}
+		</script>
+		<span id="show"></span>
+	</body>
+</html>
 `
-var htmlTmpl3 = `<script type="text/javascript">
-	 window.location.replace("/?url={{.}}");
-</script>
+var htmlTmpl3 = `<!DOCTYPE html>
+<html lang="zh">
+	<body>
+		<script type="text/javascript">
+			 window.location.replace("/?url={{.}}");
+		</script>
+	</body>
+</html>
 `
 
 func connectDB(uri string) (*mongo.Client, error) {
