@@ -9,6 +9,10 @@
       "dest": "/api/status"
     },
     {
+      "src": "/redirect",
+      "dest": "/api/redirect"
+    }
+    {
       "src": "/",
       "dest": "/Coolapk1s.html"
     },
