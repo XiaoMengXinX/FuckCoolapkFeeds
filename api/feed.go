@@ -58,7 +58,7 @@ var htmlTmpl2 = `<!DOCTYPE html>
 			setInterval("countdown()", 1000);
 			setTimeout(, 3000); 
 			function redirect() {
-				window.open("/redirect?url={{.URL}}");
+				window.location.replace("/redirect?url={{.URL}}");
 			}
 			function countdown() {
 				document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
@@ -75,7 +75,7 @@ var htmlTmpl3 = `<!DOCTYPE html>
 <html lang="zh">
 	<body>
 		<script type="text/javascript">
-			 window.open("/redirect?url={{.}}");
+			 window.location.replace("/redirect?url={{.}}");
 		</script>
 	</body>
 </html>
