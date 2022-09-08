@@ -53,7 +53,7 @@ var htmlTmpl = `<head>
 var htmlTmpl2 = `<!DOCTYPE html>
 <html lang="zh">
 	<head>
-		<meta http-equiv="refresh" content="3;url=/?url={{.URL}}" />
+		<meta http-equiv="refresh" content="3;url=/redirect?url={{.URL}}" />
 	</head>
 	<body>
 		<script type="text/javascript"> 
@@ -72,7 +72,7 @@ var htmlTmpl3 = `<!DOCTYPE html>
 <html lang="zh">
 	<body>
 		<script type="text/javascript">
-			 window.location.replace("/?url={{.}}");
+			 window.location.replace("/redirect?url={{.}}");
 		</script>
 	</body>
 </html>
