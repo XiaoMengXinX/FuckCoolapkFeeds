@@ -174,7 +174,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 				URL     string
 			}{
 				Message: message + "<br>",
-				URL:     feedURL,
+				URL:     strings.ReplaceAll(feedURL, "https", "http"),
 			})
 			return
 		}
@@ -218,7 +218,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		//http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
 		t, _ := template.New("index").Parse(htmlTmpl3)
-		_ = t.Execute(w, data.ShareUrl)
+		_ = t.Execute(w, strings.ReplaceAll(data.ShareUrl, "https", "http"))
 	}
 	return
 }
