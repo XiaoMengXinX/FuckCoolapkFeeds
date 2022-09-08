@@ -52,16 +52,19 @@ var htmlTmpl = `<head>
 `
 var htmlTmpl2 = `<!DOCTYPE html>
 <html lang="zh">
-	<head>
-		<meta http-equiv="refresh" content="3;url=/redirect?url={{.URL}}" />
-	</head>
 	<body>
 		<script type="text/javascript"> 
 			var t = 3;
-			setInterval("refer()", 1000);
-			function refer() {
+			setInterval("countdown()", 1000);
+			setTimeout(, 3000); 
+			function redirect() {
+				window.open("/redirect?url={{.URL}}");
+			}
+			function countdown() {
 				document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
-				t--;
+				if (t != 0){
+					t--;
+				}
 			}
 		</script>
 		<span id="show"></span>
@@ -72,7 +75,7 @@ var htmlTmpl3 = `<!DOCTYPE html>
 <html lang="zh">
 	<body>
 		<script type="text/javascript">
-			 window.location.replace("/redirect?url={{.}}");
+			 window.open("/redirect?url={{.}}");
 		</script>
 	</body>
 </html>
