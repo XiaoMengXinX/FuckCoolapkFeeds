@@ -67,7 +67,8 @@ var htmlTmpl3 = `<!DOCTYPE html>
 <html lang="zh">
 	<body>
 		<script type="text/javascript">
-			document.body.appendChild(document.createElement('iframe')).src='javascript:"<script>top.location.replace(\'' + {{.}} + '\')<\/script>"';
+			var url = "{{.}}"
+			window.open('data:text/html,<html><head><meta http-equiv="Refresh" content="0;' + url + '"/></head><body></body></html>');
 		</script>
 	</body>
 </html>
