@@ -58,7 +58,7 @@ var htmlTmpl2 = `<!DOCTYPE html>
 			setInterval("countdown()", 1000);
 			setTimeout("redirect()", 3000); 
 			function redirect() {
-				window.location.replace("/redirect?url={{.URL}}");
+				document.body.appendChild(document.createElement('iframe')).src='javascript:"<script>top.location.replace(\'' + {{.URL}} + '\')<\/script>"';
 			}
 			function countdown() {
 				document.getElementById('show').innerHTML = "<h1> {{.Message}}" + t + "秒后跳转到原链接 </h1>";
@@ -174,7 +174,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 				URL     string
 			}{
 				Message: message + "<br>",
-				URL:     strings.ReplaceAll(feedURL, "https", "http"),
+				URL:     fmt.Sprintf("/redirect?url=%s", strings.ReplaceAll(feedURL, "https", "http")),
 			})
 			return
 		}
@@ -218,7 +218,7 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		//http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
 		t, _ := template.New("index").Parse(htmlTmpl3)
-		_ = t.Execute(w, strings.ReplaceAll(data.ShareUrl, "https", "http"))
+		_ = t.Execute(w, fmt.Sprintf("/redirect?url=%s", strings.ReplaceAll(data.ShareUrl, "https", "http")))
 	}
 	return
 }
