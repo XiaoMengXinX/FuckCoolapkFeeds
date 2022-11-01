@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/XiaoMengXinX/CoolapkApi-Go v0.0.0-20220830142208-75550f7916d0
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	go.mongodb.org/mongo-driver v1.8.4
 )
 

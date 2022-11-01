@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -13,22 +12,10 @@ import (
 	"time"
 
 	coolapk "github.com/XiaoMengXinX/CoolapkApi-Go"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-var bot = &tgbotapi.BotAPI{
-	Token:  os.Getenv("BOT_TOKEN"),
-	Client: &http.Client{},
-	Buffer: 100,
-}
-var chatID, _ = strconv.Atoi(os.Getenv("CHAT_ID"))
-
-func init() {
-	bot.SetAPIEndpoint(tgbotapi.APIEndpoint)
-}
 
 type feedData struct {
 	ID        string    `bson:"id"`
@@ -132,28 +119,6 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if feedDetail.Data.ShareUrl == "" {
-			if bot.Token != "" {
-				loc, _ := time.LoadLocation("Asia/Hong_Kong")
-				var respJson interface{}
-				_ = json.Unmarshal([]byte(feedDetail.Response), &respJson)
-				jsonBytes, _ := json.MarshalIndent(struct {
-					ClientInfo interface{} `json:"client_info"`
-					UserAgent  interface{} `json:"user_agent"`
-					DeviceID   interface{} `json:"device_id"`
-					Response   interface{} `json:"response"`
-				}{
-					ClientInfo: c.FakeClient,
-					UserAgent:  c.UserAgent,
-					DeviceID:   c.DeviceID,
-					Response:   respJson,
-				}, "", "  ")
-				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
-					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
-					Bytes: jsonBytes,
-				})
-				msg.Caption = feedURL + "\n" + feedURL[:19] + "1s" + feedURL[19:]
-				_, err = bot.Send(msg)
-			}
 			/*
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				_, _ = fmt.Fprintf(w, "Invaid Feed ID: %s\nError Code: %d", feedDetail.Message, feedDetail.Status)
