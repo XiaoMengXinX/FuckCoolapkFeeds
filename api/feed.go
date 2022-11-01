@@ -2,15 +2,19 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	coolapk "github.com/XiaoMengXinX/CoolapkApi-Go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -48,6 +52,9 @@ var htmlTmpl = `<head>
 `
 var htmlTmpl2 = `<!DOCTYPE html>
 <html lang="zh">
+	<head>
+		<meta name="referrer" content="no-referrer">
+	</head>
 	<body>
 		<script type="text/javascript"> 
 			var t = 3;
@@ -67,15 +74,6 @@ var htmlTmpl2 = `<!DOCTYPE html>
 	</body>
 </html>
 `
-var htmlTmpl3 = `<!DOCTYPE html>
-<html lang="zh">
-	<body>
-		<script type="text/javascript">
-			 window.location.replace("/redirect?url={{.}}");
-		</script>
-	</body>
-</html>
-`
 
 func connectDB(uri string) (*mongo.Client, error) {
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
@@ -87,7 +85,6 @@ func connectDB(uri string) (*mongo.Client, error) {
 	return mongo.Connect(ctx, clientOptions)
 }
 
-/*
 func init() {
 	if os.Getenv("MONGO_URI") != "" {
 		client, err := connectDB(os.Getenv("MONGO_URI"))
@@ -96,7 +93,6 @@ func init() {
 		}
 	}
 }
-*/
 
 func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Path) <= 1 {
@@ -109,8 +105,113 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	feedURL := fmt.Sprintf("http://www.coolapk.com/feed/%d", feedID)
-	t, _ := template.New("index").Parse(htmlTmpl3)
-	_ = t.Execute(w, feedURL)
+	var data feedData
+	var e error
+	if collection != nil {
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
+		defer cancel()
+		e = collection.FindOne(ctx, bson.M{"id": fmt.Sprintf("%d", feedID)}).Decode(&data)
+	}
 
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	feedURL := fmt.Sprintf("https://www.coolapk.com/feed/%d", feedID)
+
+	if e != nil || collection == nil {
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+		defer cancel()
+
+		c := coolapk.New()
+		feedDetail, err := c.GetFeedDetailWithCtx(feedID, ctx)
+		if err != nil { // 超时刷新重试
+			scheme := "http://"
+			if r.TLS != nil {
+				scheme = "https://"
+			}
+			url := scheme + r.Host + r.RequestURI
+			http.Redirect(w, r, url, http.StatusMovedPermanently)
+			return
+		}
+		if feedDetail.Data.ShareUrl == "" {
+			if bot.Token != "" {
+				loc, _ := time.LoadLocation("Asia/Hong_Kong")
+				var respJson interface{}
+				_ = json.Unmarshal([]byte(feedDetail.Response), &respJson)
+				jsonBytes, _ := json.MarshalIndent(struct {
+					ClientInfo interface{} `json:"client_info"`
+					UserAgent  interface{} `json:"user_agent"`
+					DeviceID   interface{} `json:"device_id"`
+					Response   interface{} `json:"response"`
+				}{
+					ClientInfo: c.FakeClient,
+					UserAgent:  c.UserAgent,
+					DeviceID:   c.DeviceID,
+					Response:   respJson,
+				}, "", "  ")
+				msg := tgbotapi.NewDocument(int64(chatID), tgbotapi.FileBytes{
+					Name:  fmt.Sprintf("%d_%s.json", feedID, time.Now().In(loc).Format("2006-01-02_15-04-05")),
+					Bytes: jsonBytes,
+				})
+				msg.Caption = feedURL + "\n" + feedURL[:19] + "1s" + feedURL[19:]
+				_, err = bot.Send(msg)
+			}
+			/*
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				_, _ = fmt.Fprintf(w, "Invaid Feed ID: %s\nError Code: %d", feedDetail.Message, feedDetail.Status)
+			*/
+			message := "获取 ShareKey 失败"
+			if feedDetail.Message != "" {
+				message += "：" + feedDetail.Message
+			}
+			t, _ := template.New("index").Parse(htmlTmpl2)
+			_ = t.Execute(w, struct {
+				Message string
+				URL     string
+			}{
+				Message: message + "<br>",
+				URL:     feedURL,
+			})
+			return
+		}
+
+		if feedDetail.Data.MessageCover != "" {
+			data.PicURL = feedDetail.Data.MessageCover
+		} else if feedDetail.Data.Pic != "" {
+			data.PicURL = feedDetail.Data.Pic
+		} else if len(feedDetail.Data.PicArr) != 0 {
+			data.PicURL = feedDetail.Data.PicArr[0]
+		}
+
+		data.ID = fmt.Sprintf("%d", feedID)
+		data.ShareUrl = feedDetail.Data.ShareUrl
+		data.Message = feedDetail.Data.Message
+		data.CreatedAt = time.Now()
+	}
+	data.ReqTimes++
+
+	if collection != nil {
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
+		defer cancel()
+		if e != nil {
+			_, err = collection.InsertOne(ctx, data)
+		} else {
+			_, err = collection.UpdateOne(ctx, bson.M{"id": data.ID}, bson.M{"$set": bson.M{"requested_times": data.ReqTimes}})
+		}
+	}
+
+	if strings.Contains(r.UserAgent(), "bot") || strings.Contains(r.UserAgent(), "Bot") {
+		re := regexp.MustCompile("<[\\S\\s]+?>")
+		message := re.ReplaceAllString(data.Message, "")
+		t, _ := template.New("index").Parse(htmlTmpl)
+		_ = t.Execute(w, struct {
+			Message string
+			Pic     string
+		}{
+			Message: message,
+			Pic:     data.PicURL,
+		})
+	} else {
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		http.Redirect(w, r, data.ShareUrl, http.StatusMovedPermanently)
+	}
+	return
 }
