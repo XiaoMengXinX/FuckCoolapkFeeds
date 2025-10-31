@@ -1,25 +1,15 @@
 {
-  "routes": [
+  "build": {
+    "env": {
+      "ENABLE_ROOT_PATH_BUILD_CACHE": "1"
+    }
+  },
+  "installCommand": "npm install",
+  "redirects": [
     {
-      "src": "/feed/.*",
-      "dest": "/api/feed"
-    },
-    {
-      "src": "/status",
-      "dest": "/api/status"
-    },
-    {
-      "src": "/redirect",
-      "dest": "/api/redirect"
-    },
-    {
-      "src": "/",
-      "dest": "/Coolapk1s.html"
-    },
-    {
-      "src": "/(.*)",
-      "headers": { "Location": "https://www.coolapk.com/$1" },
-      "status": 308
+      "source": "/((?!api|feed|_next/).*)",
+      "destination": "https://www.coolapk.com/$1",
+      "permanent": false
     }
   ]
 }

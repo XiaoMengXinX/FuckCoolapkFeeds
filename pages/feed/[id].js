@@ -1,0 +1,353 @@
+import { useRouter } from 'next/router';
+import { useEffect, useState, useRef } from 'react';
+
+const ImageCarousel = ({ images, onImageClick }) => {
+    const scrollContainer = useRef(null);
+
+    const scroll = (direction) => {
+        if (scrollContainer.current) {
+            const scrollAmount = scrollContainer.current.offsetWidth;
+            scrollContainer.current.scrollBy({ left: scrollAmount * direction, behavior: 'smooth' });
+        }
+    };
+
+    return (
+        <div style={styles.carouselContainer}>
+            <button onClick={() => scroll(-1)} style={{...styles.carouselButton, left: '10px'}}>&lt;</button>
+            <div ref={scrollContainer} style={styles.carousel}>
+                {images.map((img, index) => (
+                    <img
+                        key={index}
+                        src={img}
+                        alt={`carousel-image-${index}`}
+                        style={styles.carouselImage}
+                        onClick={() => onImageClick(img)}
+                    />
+                ))}
+            </div>
+            <button onClick={() => scroll(1)} style={{...styles.carouselButton, right: '10px'}}>&gt;</button>
+        </div>
+    );
+};
+
+const FeedPage = () => {
+    const router = useRouter();
+    const { id } = router.query;
+    const [feed, setFeed] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [isBarVisible, setIsBarVisible] = useState(true);
+    const [selectedImage, setSelectedImage] = useState(null);
+
+    const proxyImage = (url) => {
+        if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
+            return `/api/image?url=${encodeURIComponent(url)}`;
+        }
+        return url;
+    };
+
+    useEffect(() => {
+        if (id) {
+            fetch(`/api/feed?id=${id}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    setFeed(data.data);
+                    setLoading(false);
+                })
+                .catch(error => {
+                    setError(error);
+                    setLoading(false);
+                });
+        }
+    }, [id]);
+
+    const renderFeedContent = () => {
+        if (loading) {
+            return <div style={styles.centered}>Loading...</div>;
+        }
+
+        if (error) {
+            return <div style={styles.centered}>Error: {error.message}</div>;
+        }
+
+        if (!feed) {
+            return <div style={styles.centered}>No feed data found.</div>;
+        }
+
+        if (feed.feedType === 'feedArticle') {
+            return renderArticleContent(feed.message_raw_output);
+        } else if (feed.feedType === 'feed') {
+            return renderStandardFeed();
+        } else {
+            return <div style={styles.centered}>不支持的动态类型: {feed.feedType}</div>;
+        }
+    };
+
+    const renderArticleContent = (messageRaw) => {
+        try {
+            const messageParts = JSON.parse(messageRaw);
+            return messageParts.map((part, index) => {
+                if (part.type === 'text') {
+                    const formattedMessage = part.message
+                        .replace(/\\u0022/g, '"')
+                        .replace(/<!--break-->/g, '')
+                        .replace(/\\n/g, '\n');
+                    
+                    let htmlMessage = formattedMessage.replace(/\n/g, '<br />');
+                    htmlMessage = htmlMessage.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
+
+                    return (
+                        <div
+                            key={index}
+                            style={styles.textBlock}
+                            dangerouslySetInnerHTML={{ __html: htmlMessage }}
+                        />
+                    );
+                } else if (part.type === 'image') {
+                    const imageUrl = proxyImage(part.url);
+                    return (
+                        <div key={index} style={styles.imageContainer}>
+                            <img 
+                                src={imageUrl} 
+                                alt={part.description || `feed-image-${index}`} 
+                                style={{...styles.image, cursor: 'pointer'}} 
+                                onClick={() => setSelectedImage(imageUrl)}
+                            />
+                            {part.description && <div style={styles.imageDescription}>{part.description}</div>}
+                        </div>
+                    );
+                }
+                return null;
+            });
+        } catch (e) {
+            let fallbackHtml = feed.message.replace(/\\n/g, '<br />');
+            fallbackHtml = fallbackHtml.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
+            return <div style={{whiteSpace: 'pre-wrap'}} dangerouslySetInnerHTML={{ __html: fallbackHtml }} />;
+        }
+    };
+
+    const renderStandardFeed = () => {
+        let htmlMessage = feed.message.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
+        return (
+            <div>
+                <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: htmlMessage.replace(/\n/g, '<br />') }} />
+                {feed.picArr && feed.picArr.length > 0 && (
+                    <ImageCarousel 
+                        images={feed.picArr.map(proxyImage)} 
+                        onImageClick={setSelectedImage}
+                    />
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div style={styles.container}>
+            {feed && (
+                <div style={styles.header}>
+                    <h1 style={styles.title}>{feed.message_title || feed.title}</h1>
+                    <div style={styles.userInfo}>
+                        <img src={proxyImage(feed.userAvatar)} alt={feed.username} style={styles.avatar} />
+                        <div>
+                            <strong style={styles.username}>{feed.username}</strong>
+                            <div style={styles.dateline}>
+                                {new Date(feed.dateline * 1000).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            <div style={styles.content}>{renderFeedContent()}</div>
+
+            {isBarVisible && id && (
+                <div style={styles.floatingBarContainer}>
+                    <div style={styles.floatingBar}>
+                        <a href={`https://www.coolapk.com/feed/${id}`} target="_blank" rel="noopener noreferrer" style={styles.originalLinkButton}>
+                            打开原链接
+                        </a>
+                        <button onClick={() => setIsBarVisible(false)} style={styles.closeButton}>
+                            &times;
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {selectedImage && (
+                <div style={styles.lightbox} onClick={() => setSelectedImage(null)}>
+                    <img src={selectedImage} alt="Enlarged view" style={styles.lightboxImage} />
+                </div>
+            )}
+        </div>
+    );
+};
+
+const styles = {
+    carouselContainer: {
+        position: 'relative',
+        margin: '20px 0',
+    },
+    carousel: {
+        display: 'flex',
+        overflowX: 'scroll',
+        scrollSnapType: 'x mandatory',
+        gap: '10px',
+        padding: '10px 0',
+        scrollbarWidth: 'none', // for Firefox
+        msOverflowStyle: 'none',  // for Internet Explorer 10+
+    },
+    carouselImage: {
+        width: '80%',
+        flexShrink: 0,
+        scrollSnapAlign: 'start',
+        borderRadius: '8px',
+        cursor: 'pointer',
+    },
+    carouselButton: {
+        position: 'absolute',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        color: 'white',
+        border: 'none',
+        borderRadius: '50%',
+        width: '40px',
+        height: '40px',
+        fontSize: '20px',
+        cursor: 'pointer',
+        zIndex: 1,
+    },
+    container: {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: '20px',
+        color: '#333',
+        backgroundColor: 'transparent', // Inherit global background color
+        paddingBottom: '100px', // Add padding to prevent content from being hidden by the floating bar
+    },
+    centered: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 'calc(100vh - 200px)', // Adjust height to keep it centered
+        fontSize: '1.2em',
+    },
+    header: {
+        borderBottom: '1px solid #eee',
+        paddingBottom: '20px',
+        marginBottom: '20px',
+    },
+    title: {
+        fontSize: '2em',
+        fontWeight: 'bold',
+        marginBottom: '10px',
+    },
+    userInfo: {
+        display: 'flex',
+        alignItems: 'center',
+    },
+    avatar: {
+        width: '50px',
+        height: '50px',
+        borderRadius: '50%',
+        marginRight: '15px',
+    },
+    username: {
+        fontWeight: 'bold',
+    },
+    dateline: {
+        fontSize: '0.9em',
+        color: '#888',
+    },
+    content: {
+        lineHeight: '1.8',
+        fontSize: '1.1em',
+    },
+    textBlock: {
+        marginBottom: '20px',
+        wordWrap: 'break-word',
+    },
+    imageContainer: {
+        margin: '20px 0',
+        textAlign: 'center',
+    },
+    image: {
+        maxWidth: '100%',
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+    },
+    imageDescription: {
+        marginTop: '8px',
+        color: '#666',
+        fontSize: '0.9em',
+    },
+    floatingBarContainer: {
+        position: 'fixed',
+        bottom: '20px',
+        left: '0',
+        right: '0',
+        display: 'flex',
+        justifyContent: 'center',
+        zIndex: 1000,
+    },
+    floatingBar: {
+        height: '50px',
+        backgroundColor: '#28a745',
+        borderRadius: '25px', // Makes it an oval
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 40px 0 20px', // Right padding to make space for the close button
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        position: 'relative',
+    },
+    originalLinkButton: {
+        color: 'white',
+        textDecoration: 'none',
+        fontWeight: 'bold',
+        fontSize: '16px',
+        lineHeight: '50px', // Center text vertically
+    },
+    closeButton: {
+        position: 'absolute',
+        top: '50%',
+        right: '15px', // Adjusted position
+        transform: 'translateY(-50%)',
+        background: 'rgba(0,0,0,0.2)',
+        color: 'white',
+        border: 'none',
+        borderRadius: '50%',
+        width: '20px',
+        height: '20px',
+        fontSize: '14px',
+        lineHeight: '20px',
+        textAlign: 'center',
+        cursor: 'pointer',
+    },
+    lightbox: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 2000,
+        cursor: 'pointer',
+    },
+    lightboxImage: {
+        maxWidth: '90%',
+        maxHeight: '90%',
+        boxShadow: '0 0 25px rgba(0,0,0,0.5)',
+    },
+};
+
+export default FeedPage;

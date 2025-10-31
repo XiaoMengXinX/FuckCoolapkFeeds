@@ -15,3 +15,6 @@
 # vendor/
 
 .DS_Store
+.vercel
+.next
+node_modules
