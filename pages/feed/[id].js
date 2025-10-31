@@ -1,6 +1,39 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
 
+const LazyImage = ({ src, alt, style, onClick }) => {
+    const [imageSrc, setImageSrc] = useState(null);
+    const imageRef = useRef(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setImageSrc(src);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            {
+                rootMargin: '200px', // Preload images 200px before they enter the viewport
+            }
+        );
+
+        if (imageRef.current) {
+            observer.observe(imageRef.current);
+        }
+
+        return () => {
+            if (imageRef.current) {
+                observer.unobserve(imageRef.current);
+            }
+        };
+    }, [src]);
+
+    return <img ref={imageRef} src={imageSrc || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'} alt={alt} style={style} onClick={onClick} />;
+};
+
 const ImageCarousel = ({ images, onImageClick }) => {
     const scrollContainer = useRef(null);
 
@@ -16,7 +49,7 @@ const ImageCarousel = ({ images, onImageClick }) => {
             <button onClick={() => scroll(-1)} style={{...styles.carouselButton, left: '10px'}}>&lt;</button>
             <div ref={scrollContainer} style={styles.carousel}>
                 {images.map((img, index) => (
-                    <img
+                    <LazyImage
                         key={index}
                         src={img}
                         alt={`carousel-image-${index}`}
@@ -112,10 +145,10 @@ const FeedPage = () => {
                     const imageUrl = proxyImage(part.url);
                     return (
                         <div key={index} style={styles.imageContainer}>
-                            <img 
-                                src={imageUrl} 
-                                alt={part.description || `feed-image-${index}`} 
-                                style={{...styles.image, cursor: 'pointer'}} 
+                            <LazyImage
+                                src={imageUrl}
+                                alt={part.description || `feed-image-${index}`}
+                                style={{...styles.image, cursor: 'pointer'}}
                                 onClick={() => setSelectedImage(imageUrl)}
                             />
                             {part.description && <div style={styles.imageDescription}>{part.description}</div>}
