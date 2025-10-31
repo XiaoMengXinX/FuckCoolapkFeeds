@@ -7,6 +7,11 @@
   "installCommand": "npm install",
   "redirects": [
     {
+      "source": "/",
+      "destination": "https://github.com/XiaoMengXinX/FuckCoolapkFeeds",
+      "permanent": false
+    },
+    {
       "source": "/((?!api|feed|_next/).*)",
       "destination": "https://www.coolapk.com/$1",
       "permanent": false
