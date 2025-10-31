@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
+import Head from 'next/head';
 
 const LazyImage = ({ src, alt, style, onClick }) => {
     const [imageSrc, setImageSrc] = useState(null);
@@ -182,6 +183,9 @@ const FeedPage = () => {
 
     return (
         <div style={styles.container}>
+            <Head>
+                <title>{feed ? feed.message_title : 'Loading...'}</title>
+            </Head>
             {feed && (
                 <div style={styles.header}>
                     <h1 style={styles.title}>{feed.message_title || feed.title}</h1>
