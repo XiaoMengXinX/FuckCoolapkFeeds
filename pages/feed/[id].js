@@ -49,13 +49,14 @@ const ImageCarousel = ({ images, onImageClick }) => {
             <button onClick={() => scroll(-1)} style={{...styles.carouselButton, left: '10px'}}>&lt;</button>
             <div ref={scrollContainer} style={styles.carousel}>
                 {images.map((img, index) => (
-                    <LazyImage
-                        key={index}
-                        src={img}
-                        alt={`carousel-image-${index}`}
-                        style={styles.carouselImage}
-                        onClick={() => onImageClick(img)}
-                    />
+                    <div key={index} style={styles.carouselImageContainer}>
+                        <LazyImage
+                            src={img}
+                            alt={`carousel-image-${index}`}
+                            style={styles.carouselImage}
+                            onClick={() => onImageClick(img)}
+                        />
+                    </div>
                 ))}
             </div>
             <button onClick={() => scroll(1)} style={{...styles.carouselButton, right: '10px'}}>&gt;</button>
@@ -234,10 +235,25 @@ const styles = {
         scrollbarWidth: 'none', // for Firefox
         msOverflowStyle: 'none',  // for Internet Explorer 10+
     },
-    carouselImage: {
+    carouselImageContainer: {
         width: '80%',
         flexShrink: 0,
         scrollSnapAlign: 'start',
+        aspectRatio: '3/4', // Maintain a 16:9 aspect ratio
+        maxHeight: '600px',    // But don't let it get too tall on very wide screens
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f0f0f0',
+        borderRadius: '8px',
+        overflow: 'hidden', // Hide any potential overflow
+    },
+    carouselImage: {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        width: 'auto',
+        height: 'auto',
+        objectFit: 'contain', // Ensure aspect ratio is maintained
         borderRadius: '8px',
         cursor: 'pointer',
     },
