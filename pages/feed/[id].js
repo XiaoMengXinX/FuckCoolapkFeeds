@@ -3,6 +3,9 @@ import { useEffect, useState, useRef } from 'react';
 import Head from 'next/head';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import remarkGfm from 'remark-gfm';
 
 const LazyImage = ({ src, alt, style, onClick }) => {
     const [imageSrc, setImageSrc] = useState(null);
@@ -180,17 +183,46 @@ const FeedPage = ({ feed, error }) => {
                     const processedMessage = formattedMessage.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
                     let htmlMessage = processedMessage.replace(/\n/g, '<br />');
 
+                    const decodeEntities = (text) => {
+                        if (typeof window === 'undefined') {
+                            // Basic decoding for server-side rendering
+                            return text.replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&').replace(/"/g, '"');
+                        }
+                        const textarea = document.createElement('textarea');
+                        textarea.innerHTML = text;
+                        return textarea.value;
+                    };
+
                     return isMarkdownEnabled ? (
                         <div className="markdown-content">
                             <ReactMarkdown
                                 key={index}
+                                remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeRaw]}
                                 components={{
                                     a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
                                     img: ({node, ...props}) => <LazyImage {...props} style={{...(isPC ? {...styles.image, maxWidth: '80%'} : styles.image), cursor: 'pointer'}} onClick={() => setSelectedImage(props.src)} />
+                                ,
+                                code({node, inline, className, children, ...props}) {
+                                    const match = /language-(\w+)/.exec(className || '')
+                                    return !inline && match ? (
+                                      <SyntaxHighlighter
+                                        style={vscDarkPlus}
+                                        language={match[1]}
+                                        PreTag="div"
+                                        {...props}
+                                      >
+                                        {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                    ) : (
+                                      <code className={className} {...props}>
+                                        {children}
+                                      </code>
+                                    )
+                                  }
                                 }}
                             >
-                                {processedMessage
+                                {decodeEntities(processedMessage)
                                     .replace(/\n/g, '  \n')
                                     .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>\[链接\](.*?)<\/a>/g, '[$2]($1)')
                                 }
@@ -229,18 +261,47 @@ const FeedPage = ({ feed, error }) => {
     const renderStandardFeed = () => {
         const processedMessage = feed.message.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
         let htmlMessage = processedMessage;
+        
+        const decodeEntities = (text) => {
+            if (typeof window === 'undefined') {
+                return text.replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&').replace(/"/g, '"');
+            }
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = text;
+            return textarea.value;
+        };
+
         return (
             <div>
                 {isMarkdownEnabled ? (
                     <div className="markdown-content">
                         <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeRaw]}
                             components={{
                                 a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
                                 img: ({node, ...props}) => <LazyImage {...props} style={styles.carouselImage} onClick={() => setSelectedImage(props.src)} />
-                            }}
+                            ,
+                            code({node, inline, className, children, ...props}) {
+                                    const match = /language-(\w+)/.exec(className || '')
+                                    return !inline && match ? (
+                                      <SyntaxHighlighter
+                                        style={vscDarkPlus}
+                                        language={match[1]}
+                                        PreTag="div"
+                                        {...props}
+                                      >
+                                        {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                    ) : (
+                                      <code className={className} {...props}>
+                                        {children}
+                                      </code>
+                                    )
+                                  }
+                                }}
                         >
-                            {processedMessage
+                            {decodeEntities(processedMessage)
                                 .replace(/\n/g, '  \n')
                                 .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>\[链接\](.*?)<\/a>/g, '[$2]($1)')
                             }
@@ -425,7 +486,7 @@ const styles = {
         marginBottom: '20px',
     },
     title: {
-        fontSize: '2em',
+        fontSize: '1.8em',
         fontWeight: 'bold',
         marginBottom: '10px',
     },

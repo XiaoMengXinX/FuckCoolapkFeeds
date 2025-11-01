@@ -60,7 +60,7 @@ input:checked + .slider:before {
 
 /* Markdown specific styles */
 .markdown-content h1 {
-  font-size: 1.5em;
+  font-size: 1.4em;
 }
 
 .markdown-content h2 {
@@ -75,4 +75,16 @@ input:checked + .slider:before {
 .markdown-content h5,
 .markdown-content h6 {
   font-size: 1.1em;
+}
+
+.markdown-content pre {
+  white-space: pre; /* Preserve formatting and don't wrap lines */
+  overflow-x: auto; /* Add horizontal scroll on overflow */
+  background-color: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.markdown-content code {
+  white-space: inherit; /* Inherit the white-space from parent <pre> */
 }
