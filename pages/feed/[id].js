@@ -79,7 +79,7 @@ const ImageCarousel = ({ images, onImageClick }) => {
 
     return (
         <div style={styles.carouselContainer}>
-            <button onClick={() => scroll(-1)} style={{...styles.carouselButton, left: '10px'}}>&lt;</button>
+            <button onClick={() => scroll(-1)} style={{...styles.carouselButton, left: '10px'}}>{'<'}</button>
             <div ref={scrollContainer} style={styles.carousel}>
                 {images.map((img, index) => (
                     <div key={index} style={styles.carouselImageContainer}>
@@ -92,27 +92,18 @@ const ImageCarousel = ({ images, onImageClick }) => {
                     </div>
                 ))}
             </div>
-            <button onClick={() => scroll(1)} style={{...styles.carouselButton, right: '10px'}}>&gt;</button>
+            <button onClick={() => scroll(1)} style={{...styles.carouselButton, right: '10px'}}>{'>'}</button>
         </div>
     );
 };
 
-const FeedPage = () => {
+const FeedPage = ({ feed, error }) => {
     const router = useRouter();
     const { id } = router.query;
-    const [feed, setFeed] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [isBarVisible, setIsBarVisible] = useState(true);
     const [selectedImage, setSelectedImage] = useState(null);
     const [isPC, setIsPC] = useState(false);
-
-    const proxyImage = (url) => {
-        if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
-            return `http://image.coolapk1s.com/?url=${encodeURIComponent(url)}`;
-        }
-        return url;
-    };
+    const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
         const checkIsPC = () => {
@@ -120,38 +111,26 @@ const FeedPage = () => {
                 setIsPC(window.matchMedia("(min-width: 768px)").matches);
             }
         };
-
         checkIsPC();
         window.addEventListener('resize', checkIsPC);
 
-        if (id) {
-            fetch(`/api/feed?id=${id}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    setFeed(data.data);
-                    setLoading(false);
-                })
-                .catch(error => {
-                    setError(error);
-                    setLoading(false);
-                });
+        if (feed) {
+            setFormattedDate(new Date(feed.dateline * 1000).toLocaleString());
         }
-        
+
         return () => window.removeEventListener('resize', checkIsPC);
-    }, [id]);
+    }, [feed]);
+    
+    const proxyImage = (url) => {
+        if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
+             return `https://image.coolapk1s.com/?url=${encodeURIComponent(url)}`;
+        }
+        return url;
+    };
 
     const renderFeedContent = () => {
-        if (loading) {
-            return <div style={styles.centered}>Loading...</div>;
-        }
-
         if (error) {
-            return <div style={styles.centered}>Error: {error.message}</div>;
+            return <div style={styles.centered}>Error: {error}</div>;
         }
 
         if (!feed) {
@@ -251,7 +230,7 @@ const FeedPage = () => {
                         <div>
                             <strong style={styles.username}>{feed.username}</strong>
                             <div style={styles.dateline}>
-                                {new Date(feed.dateline * 1000).toLocaleString()}
+                                {formattedDate}
                             </div>
                         </div>
                     </div>
@@ -281,6 +260,34 @@ const FeedPage = () => {
         </div>
     );
 };
+
+export async function getServerSideProps(context) {
+    const { id } = context.params;
+    const protocol = context.req.headers['x-forwarded-proto'] || 'http';
+    const host = context.req.headers['x-forwarded-host'] || context.req.headers.host;
+    const apiUrl = `${protocol}://${host}/api/feed?id=${id}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        return {
+            props: {
+                feed: data.data,
+                error: null,
+            },
+        };
+    } catch (error) {
+        return {
+            props: {
+                feed: null,
+                error: error.message,
+            },
+        };
+    }
+}
 
 const styles = {
     carouselContainer: {
