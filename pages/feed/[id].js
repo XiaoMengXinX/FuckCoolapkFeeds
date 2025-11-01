@@ -385,7 +385,9 @@ const FeedPage = ({ feed, error }) => {
 };
 
 export async function getServerSideProps(context) {
-    const { id } = context.params;
+    const { res, params } = context;
+    const { id } = params;
+
     const protocol = context.req.headers['x-forwarded-proto'] || 'http';
     const host = context.req.headers['x-forwarded-host'] || context.req.headers.host;
     const apiUrl = `${protocol}://${host}/api/feed?id=${id}`;
@@ -396,9 +398,18 @@ export async function getServerSideProps(context) {
             throw new Error('Network response was not ok');
         }
         const data = await response.json();
+
+        // Only cache if data is successfully fetched and not empty
+        if (data && data.data && Object.keys(data.data).length > 0) {
+            res.setHeader(
+                'Cache-Control',
+                'public, s-maxage=604800, stale-while-revalidate=86400'
+            );
+        }
+
         return {
             props: {
-                feed: data.data,
+                feed: data.data || null, // Ensure feed is null if data.data is missing
                 error: null,
             },
         };
