@@ -79,7 +79,12 @@ const ImageCarousel = ({ images, onImageClick }) => {
 
     return (
         <div style={styles.carouselContainer}>
-            <button onClick={() => scroll(-1)} style={{...styles.carouselButton, left: '10px'}}>{'<'}</button>
+            {images.length > 1 && (
+                <>
+                    <button onClick={() => scroll(-1)} style={{...styles.carouselButton, left: '10px'}}>{'<'}</button>
+                    <button onClick={() => scroll(1)} style={{...styles.carouselButton, right: '10px'}}>{'>'}</button>
+                </>
+            )}
             <div ref={scrollContainer} style={styles.carousel}>
                 {images.map((img, index) => (
                     <div key={index} style={styles.carouselImageContainer}>
