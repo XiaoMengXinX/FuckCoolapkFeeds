@@ -76,7 +76,7 @@ const FeedPage = () => {
 
     const proxyImage = (url) => {
         if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
-            return `/api/image?url=${encodeURIComponent(url)}`;
+            return `http://image.coolapk1s.com/?url=${encodeURIComponent(url)}`;
         }
         return url;
     };
