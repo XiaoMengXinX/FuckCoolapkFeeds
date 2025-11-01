@@ -92,9 +92,21 @@ const ImageCarousel = ({ images, onImageClick }) => {
                     </div>
                 ))}
             </div>
-            <button onClick={() => scroll(1)} style={{...styles.carouselButton, right: '10px'}}>{'>'}</button>
         </div>
     );
+};
+
+const generateOgDescription = (message) => {
+    if (!message) return '';
+    let cleanMessage = message
+        .replace(/<!--break-->/g, '')
+        .replace(/<[^>]+>/g, '')
+        .trim();
+
+    if (cleanMessage.length > 200) {
+        cleanMessage = cleanMessage.substring(0, 200) + '...';
+    }
+    return cleanMessage;
 };
 
 const FeedPage = ({ feed, error }) => {
@@ -211,7 +223,7 @@ const FeedPage = ({ feed, error }) => {
                 {feed && (
                     <>
                         <meta property="og:title" content={feed.feedType === 'feedArticle' ? feed.message_title : feed.title} />
-                        <meta property="og:description" content={feed.message} />
+                        <meta property="og:description" content={generateOgDescription(feed.message)} />
                         <meta name="twitter:card" content="summary_large_image" />
                         {feed.picArr && feed.picArr.length > 0 && (
                             <meta property="og:image" content={proxyImage(feed.picArr[0])} />
@@ -312,7 +324,6 @@ const styles = {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f0f0f0',
         borderRadius: '8px',
         overflow: 'hidden',
     },
@@ -326,6 +337,7 @@ const styles = {
         cursor: 'pointer',
         margin: '0 auto',
         display: 'block',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
     },
     carouselButton: {
         position: 'absolute',
