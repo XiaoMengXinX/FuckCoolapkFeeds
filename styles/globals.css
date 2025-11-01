@@ -86,5 +86,22 @@ input:checked + .slider:before {
 }
 
 .markdown-content code {
-  white-space: inherit; /* Inherit the white-space from parent <pre> */
+  white-space: normal;
+  word-wrap: break-word;
+  padding: .2em .4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(27,31,35,.05);
+  border-radius: 3px;
+}
+
+.markdown-content pre code {
+  /* Reset styles for code inside pre blocks */
+  white-space: inherit;
+  word-wrap: normal;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  background-color: transparent;
+  border-radius: 0;
 }
