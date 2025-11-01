@@ -4,6 +4,7 @@ import Head from 'next/head';
 
 const LazyImage = ({ src, alt, style, onClick }) => {
     const [imageSrc, setImageSrc] = useState(null);
+    const [loaded, setLoaded] = useState(false);
     const imageRef = useRef(null);
 
     useEffect(() => {
@@ -32,7 +33,38 @@ const LazyImage = ({ src, alt, style, onClick }) => {
         };
     }, [src]);
 
-    return <img ref={imageRef} src={imageSrc || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'} alt={alt} style={style} onClick={onClick} />;
+    const handleImageLoad = () => {
+        setLoaded(true);
+    };
+
+    return (
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {!loaded && imageSrc && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#f0f0f0',
+                    color: '#aaa',
+                }}>
+                    Loading...
+                </div>
+            )}
+            <img
+                ref={imageRef}
+                src={imageSrc}
+                alt={alt}
+                style={{ ...style, opacity: loaded ? 1 : 0, transition: 'opacity 0.3s' }}
+                onClick={onClick}
+                onLoad={handleImageLoad}
+            />
+        </div>
+    );
 };
 
 const ImageCarousel = ({ images, onImageClick }) => {
@@ -73,6 +105,7 @@ const FeedPage = () => {
     const [error, setError] = useState(null);
     const [isBarVisible, setIsBarVisible] = useState(true);
     const [selectedImage, setSelectedImage] = useState(null);
+    const [isPC, setIsPC] = useState(false);
 
     const proxyImage = (url) => {
         if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
@@ -82,6 +115,15 @@ const FeedPage = () => {
     };
 
     useEffect(() => {
+        const checkIsPC = () => {
+            if (typeof window !== "undefined") {
+                setIsPC(window.matchMedia("(min-width: 768px)").matches);
+            }
+        };
+
+        checkIsPC();
+        window.addEventListener('resize', checkIsPC);
+
         if (id) {
             fetch(`/api/feed?id=${id}`)
                 .then(response => {
@@ -99,6 +141,8 @@ const FeedPage = () => {
                     setLoading(false);
                 });
         }
+        
+        return () => window.removeEventListener('resize', checkIsPC);
     }, [id]);
 
     const renderFeedContent = () => {
@@ -150,7 +194,7 @@ const FeedPage = () => {
                             <LazyImage
                                 src={imageUrl}
                                 alt={part.description || `feed-image-${index}`}
-                                style={{...styles.image, cursor: 'pointer'}}
+                                style={{...(isPC ? {...styles.image, maxWidth: '80%'} : styles.image), cursor: 'pointer'}}
                                 onClick={() => setSelectedImage(imageUrl)}
                             />
                             {part.description && <div style={styles.imageDescription}>{part.description}</div>}
@@ -184,7 +228,7 @@ const FeedPage = () => {
     return (
         <div style={styles.container}>
             <Head>
-                <title>{feed ? feed.message_title : 'Loading...'}</title>
+                <title>{feed ? (feed.feedType === 'feedArticle' ? feed.message_title : feed.title) : 'Loading...'}</title>
             </Head>
             {feed && (
                 <div style={styles.header}>
@@ -240,26 +284,28 @@ const styles = {
         msOverflowStyle: 'none',  // for Internet Explorer 10+
     },
     carouselImageContainer: {
-        width: '80%',
+        width: '100%',
         flexShrink: 0,
-        scrollSnapAlign: 'start',
-        aspectRatio: '3/4', // Maintain a 16:9 aspect ratio
-        maxHeight: '600px',    // But don't let it get too tall on very wide screens
+        scrollSnapAlign: 'center',
+        aspectRatio: '3/4',
+        maxHeight: '600px',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#f0f0f0',
         borderRadius: '8px',
-        overflow: 'hidden', // Hide any potential overflow
+        overflow: 'hidden',
     },
     carouselImage: {
         maxWidth: '100%',
         maxHeight: '100%',
         width: 'auto',
         height: 'auto',
-        objectFit: 'contain', // Ensure aspect ratio is maintained
+        objectFit: 'contain',
         borderRadius: '8px',
         cursor: 'pointer',
+        margin: '0 auto',
+        display: 'block',
     },
     carouselButton: {
         position: 'absolute',
