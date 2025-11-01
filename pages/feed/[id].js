@@ -229,6 +229,19 @@ const FeedPage = () => {
         <div style={styles.container}>
             <Head>
                 <title>{feed ? (feed.feedType === 'feedArticle' ? feed.message_title : feed.title) : 'Loading...'}</title>
+                {feed && (
+                    <>
+                        <meta property="og:title" content={feed.feedType === 'feedArticle' ? feed.message_title : feed.title} />
+                        <meta property="og:description" content={feed.message} />
+                        <meta name="twitter:card" content="summary_large_image" />
+                        {feed.picArr && feed.picArr.length > 0 && (
+                            <meta property="og:image" content={proxyImage(feed.picArr[0])} />
+                        )}
+                         {feed.picArr && feed.picArr.length > 0 && (
+                            <meta property="twitter:image" content={proxyImage(feed.picArr[0])} />
+                        )}
+                    </>
+                )}
             </Head>
             {feed && (
                 <div style={styles.header}>
