@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
 import Head from 'next/head';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 
 const LazyImage = ({ src, alt, style, onClick }) => {
     const [imageSrc, setImageSrc] = useState(null);
@@ -56,6 +58,7 @@ const LazyImage = ({ src, alt, style, onClick }) => {
                 </div>
             )}
             <img
+            
                 ref={imageRef}
                 src={imageSrc}
                 alt={alt}
@@ -121,6 +124,7 @@ const FeedPage = ({ feed, error }) => {
     const [selectedImage, setSelectedImage] = useState(null);
     const [isPC, setIsPC] = useState(false);
     const [formattedDate, setFormattedDate] = useState('');
+    const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
 
     useEffect(() => {
         const checkIsPC = () => {
@@ -173,10 +177,26 @@ const FeedPage = ({ feed, error }) => {
                         .replace(/<!--break-->/g, '')
                         .replace(/\\n/g, '\n');
                     
-                    let htmlMessage = formattedMessage.replace(/\n/g, '<br />');
-                    htmlMessage = htmlMessage.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
+                    const processedMessage = formattedMessage.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
+                    let htmlMessage = processedMessage.replace(/\n/g, '<br />');
 
-                    return (
+                    return isMarkdownEnabled ? (
+                        <div className="markdown-content">
+                            <ReactMarkdown
+                                key={index}
+                                rehypePlugins={[rehypeRaw]}
+                                components={{
+                                    a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+                                    img: ({node, ...props}) => <LazyImage {...props} style={{...(isPC ? {...styles.image, maxWidth: '80%'} : styles.image), cursor: 'pointer'}} onClick={() => setSelectedImage(props.src)} />
+                                }}
+                            >
+                                {processedMessage
+                                    .replace(/\n/g, '  \n')
+                                    .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>\[链接\](.*?)<\/a>/g, '[$2]($1)')
+                                }
+                            </ReactMarkdown>
+                        </div>
+                    ) : (
                         <div
                             key={index}
                             style={styles.textBlock}
@@ -207,10 +227,28 @@ const FeedPage = ({ feed, error }) => {
     };
 
     const renderStandardFeed = () => {
-        let htmlMessage = feed.message.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
+        const processedMessage = feed.message.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
+        let htmlMessage = processedMessage;
         return (
             <div>
-                <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: htmlMessage.replace(/\n/g, '<br />') }} />
+                {isMarkdownEnabled ? (
+                    <div className="markdown-content">
+                        <ReactMarkdown
+                            rehypePlugins={[rehypeRaw]}
+                            components={{
+                                a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+                                img: ({node, ...props}) => <LazyImage {...props} style={styles.carouselImage} onClick={() => setSelectedImage(props.src)} />
+                            }}
+                        >
+                            {processedMessage
+                                .replace(/\n/g, '  \n')
+                                .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>\[链接\](.*?)<\/a>/g, '[$2]($1)')
+                            }
+                        </ReactMarkdown>
+                    </div>
+                ) : (
+                    <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: htmlMessage.replace(/\n/g, '<br />') }} />
+                )}
                 {feed.picArr && feed.picArr.length > 0 && (
                     <ImageCarousel 
                         images={feed.picArr.map(proxyImage)} 
@@ -249,6 +287,13 @@ const FeedPage = ({ feed, error }) => {
                             <div style={styles.dateline}>
                                 {formattedDate}
                             </div>
+                        </div>
+                        <div style={styles.controlsContainer}>
+                            <span style={styles.switchLabel}>Markdown</span>
+                            <label className="switch">
+                                <input type="checkbox" checked={isMarkdownEnabled} onChange={() => setIsMarkdownEnabled(!isMarkdownEnabled)} />
+                                <span className="slider"></span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -387,6 +432,7 @@ const styles = {
     userInfo: {
         display: 'flex',
         alignItems: 'center',
+        position: 'relative',
     },
     avatar: {
         width: '50px',
@@ -484,6 +530,16 @@ const styles = {
         maxHeight: '90%',
         boxShadow: '0 0 25px rgba(0,0,0,0.5)',
     },
+    controlsContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        position: 'absolute',
+        right: 0,
+    },
+    switchLabel: {
+        fontSize: '1em',
+        marginRight: '10px',
+    }
 };
 
 export default FeedPage;
