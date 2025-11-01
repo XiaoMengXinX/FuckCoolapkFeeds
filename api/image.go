@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -50,8 +51,20 @@ func ImageProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Copy headers from the original response to our response
+	if resp.StatusCode == http.StatusOK {
+		cacheTTL := 864000
+		cacheControlValue := fmt.Sprintf("public, s-maxage=%d, max-age=%d", cacheTTL, cacheTTL)
+		w.Header().Set("Cache-Control", cacheControlValue)
+	} else if resp.StatusCode == http.StatusNotFound {
+		cacheTTL := 60
+		cacheControlValue := fmt.Sprintf("public, s-maxage=%d, max-age=%d", cacheTTL, cacheTTL)
+		w.Header().Set("Cache-Control", cacheControlValue)
+	}
+
 	for name, values := range resp.Header {
+		if name == "Cache-Control" {
+			continue
+		}
 		for _, value := range values {
 			w.Header().Add(name, value)
 		}
