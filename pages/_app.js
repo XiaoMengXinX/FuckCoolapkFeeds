@@ -1,3 +1,4 @@
+import 'highlight.js/styles/atom-one-light.css';
 import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }) {

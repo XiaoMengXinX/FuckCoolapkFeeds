@@ -1,11 +1,8 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
 import Head from 'next/head';
-import ReactMarkdown from 'react-markdown';
-import rehypeRaw from 'rehype-raw';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import remarkGfm from 'remark-gfm';
+import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
 
 const LazyImage = ({ src, alt, style, onClick }) => {
     const [imageSrc, setImageSrc] = useState(null);
@@ -129,6 +126,90 @@ const FeedPage = ({ feed, error }) => {
     const [formattedDate, setFormattedDate] = useState('');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
 
+    const processHtmlLinks = (html) => {
+        return html
+            .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>.*?<\/a>/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+            .replace(/<a class="feed-link-tag".*?href="([^"]*)".*?>#(.*?)#<\/a>/g, '<a href="https://www.coolapk.com$1" target="_blank" rel="noopener noreferrer">#$2#</a>')
+            .replace(/<a class="feed-link-uname".*?href="([^"]*)".*?>(.*?)<\/a>/g, '<a href="https://www.coolapk.com$1" target="_blank" rel="noopener noreferrer">$2</a>');
+    };
+
+    const cleanCodeContent = (str) => {
+        return str
+            .replace(/<a class="feed-link-url".*?>(.*?)<\/a>/g, '$1')
+            .replace(/<a class="feed-link-tag".*?>(.*?)<\/a>/g, '$1')
+            .replace(/<a class="feed-link-uname".*?>(.*?)<\/a>/g, '$1');
+    };
+
+    // Create MarkdownIt instance with custom preprocessing
+    const md = (() => {
+        const mdInstance = new MarkdownIt({
+            html: true,
+            linkify: true,
+            typographer: true,
+            highlight: function (str, lang) {
+                const cleanedStr = cleanCodeContent(str);
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        return '<pre><code class="hljs">' +
+                            hljs.highlight(cleanedStr, { language: lang, ignoreIllegals: true }).value +
+                            '</code></pre>';
+                    } catch (__) { }
+                }
+                return '<pre><code class="hljs">' + mdInstance.utils.escapeHtml(cleanedStr) + '</code></pre>';
+            }
+        });
+
+        // Also clean links from inline code
+        const defaultCodeInline = mdInstance.renderer.rules.code_inline;
+        mdInstance.renderer.rules.code_inline = (tokens, idx, options, env, self) => {
+            const token = tokens[idx];
+            token.content = cleanCodeContent(token.content);
+            return defaultCodeInline(tokens, idx, options, env, self);
+        };
+
+        // Override the render method to preprocess Coolapk links (but protect code blocks)
+        const originalRender = mdInstance.render.bind(mdInstance);
+        mdInstance.render = function(src, env) {
+            // Store code blocks temporarily
+            const codeBlocks = [];
+            const inlineCodeBlocks = [];
+            
+            // Replace code blocks with placeholders
+            let processedSrc = src.replace(/```[\s\S]*?```/g, (match) => {
+                const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
+                codeBlocks.push(match);
+                return placeholder;
+            });
+            
+            // Replace inline code with placeholders
+            processedSrc = processedSrc.replace(/`[^`]+`/g, (match) => {
+                const placeholder = `___INLINE_CODE_${inlineCodeBlocks.length}___`;
+                inlineCodeBlocks.push(match);
+                return placeholder;
+            });
+            
+            // Convert Coolapk HTML links to Markdown links
+            processedSrc = processedSrc
+                .replace(/<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>/g, '[$1]($1)')
+                .replace(/<a class="feed-link-tag"[^>]*?href="([^"]*)"[^>]*?>#(.*?)#<\/a>/g, '[#$2#](https://www.coolapk.com$1)')
+                .replace(/<a class="feed-link-uname"[^>]*?href="([^"]*)"[^>]*?>(.*?)<\/a>/g, '[$2](https://www.coolapk.com$1)');
+            
+            // Restore code blocks
+            processedSrc = processedSrc.replace(/___CODE_BLOCK_(\d+)___/g, (match, index) => {
+                return codeBlocks[parseInt(index)];
+            });
+            
+            // Restore inline code
+            processedSrc = processedSrc.replace(/___INLINE_CODE_(\d+)___/g, (match, index) => {
+                return inlineCodeBlocks[parseInt(index)];
+            });
+            
+            return originalRender(processedSrc, env);
+        };
+
+        return mdInstance;
+    })();
+
     useEffect(() => {
         const checkIsPC = () => {
             if (typeof window !== "undefined") {
@@ -179,9 +260,7 @@ const FeedPage = ({ feed, error }) => {
                         .replace(/\\u0022/g, '"')
                         .replace(/<!--break-->/g, '')
                         .replace(/\\n/g, '\n');
-                    
-                    const processedMessage = formattedMessage.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
-                    let htmlMessage = processedMessage.replace(/\n/g, '<br />');
+                    let htmlMessage = formattedMessage.replace(/\n/g, '<br />');
 
                     const decodeEntities = (text) => {
                         if (typeof window === 'undefined') {
@@ -194,45 +273,15 @@ const FeedPage = ({ feed, error }) => {
                     };
 
                     return isMarkdownEnabled ? (
-                        <div className="markdown-content">
-                            <ReactMarkdown
-                                key={index}
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeRaw]}
-                                components={{
-                                    a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
-                                    img: ({node, ...props}) => <LazyImage {...props} style={{...(isPC ? {...styles.image, maxWidth: '80%'} : styles.image), cursor: 'pointer'}} onClick={() => setSelectedImage(props.src)} />
-                                ,
-                                code({node, inline, className, children, ...props}) {
-                                    const match = /language-(\w+)/.exec(className || '')
-                                    return !inline && match ? (
-                                      <SyntaxHighlighter
-                                        style={vscDarkPlus}
-                                        language={match[1]}
-                                        PreTag="div"
-                                        {...props}
-                                      >
-                                        {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                    ) : (
-                                      <code className={className} {...props}>
-                                        {children}
-                                      </code>
-                                    )
-                                  }
-                                }}
-                            >
-                                {decodeEntities(processedMessage)
-                                    .replace(/\n/g, '  \n')
-                                    .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>\[链接\](.*?)<\/a>/g, '[$2]($1)')
-                                }
-                            </ReactMarkdown>
-                        </div>
+                        <div
+                            className="markdown-content"
+                            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(formattedMessage).replace(/\n/g, '  \n')) }}
+                        />
                     ) : (
                         <div
                             key={index}
                             style={styles.textBlock}
-                            dangerouslySetInnerHTML={{ __html: htmlMessage }}
+                            dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage) }}
                         />
                     );
                 } else if (part.type === 'image') {
@@ -253,14 +302,12 @@ const FeedPage = ({ feed, error }) => {
             });
         } catch (e) {
             let fallbackHtml = feed.message.replace(/\\n/g, '<br />');
-            fallbackHtml = fallbackHtml.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
             return <div style={{whiteSpace: 'pre-wrap'}} dangerouslySetInnerHTML={{ __html: fallbackHtml }} />;
         }
     };
 
     const renderStandardFeed = () => {
-        const processedMessage = feed.message.replace(/href="\/t\//g, 'href="https://www.coolapk.com/t/');
-        let htmlMessage = processedMessage;
+        let htmlMessage = feed.message;
         
         const decodeEntities = (text) => {
             if (typeof window === 'undefined') {
@@ -274,45 +321,16 @@ const FeedPage = ({ feed, error }) => {
         return (
             <div>
                 {isMarkdownEnabled ? (
-                    <div className="markdown-content">
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                            components={{
-                                a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
-                                img: ({node, ...props}) => <LazyImage {...props} style={styles.carouselImage} onClick={() => setSelectedImage(props.src)} />
-                            ,
-                            code({node, inline, className, children, ...props}) {
-                                    const match = /language-(\w+)/.exec(className || '')
-                                    return !inline && match ? (
-                                      <SyntaxHighlighter
-                                        style={vscDarkPlus}
-                                        language={match[1]}
-                                        PreTag="div"
-                                        {...props}
-                                      >
-                                        {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                    ) : (
-                                      <code className={className} {...props}>
-                                        {children}
-                                      </code>
-                                    )
-                                  }
-                                }}
-                        >
-                            {decodeEntities(processedMessage)
-                                .replace(/\n/g, '  \n')
-                                .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>\[链接\](.*?)<\/a>/g, '[$2]($1)')
-                            }
-                        </ReactMarkdown>
-                    </div>
+                    <div
+                        className="markdown-content"
+                        dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(htmlMessage).replace(/\n/g, '  \n'))}}
+                    />
                 ) : (
-                    <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: htmlMessage.replace(/\n/g, '<br />') }} />
+                    <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage.replace(/\n/g, '<br />')) }} />
                 )}
                 {feed.picArr && feed.picArr.length > 0 && (
-                    <ImageCarousel 
-                        images={feed.picArr.map(proxyImage)} 
+                    <ImageCarousel
+                        images={feed.picArr.map(proxyImage)}
                         onImageClick={setSelectedImage}
                     />
                 )}
