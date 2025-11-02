@@ -337,7 +337,7 @@ const FeedPage = ({ feed, error, isTelegram }) => {
 
         if (feed.feedType === 'feedArticle') {
             return renderArticleContent(feed.message_raw_output);
-        } else if (feed.feedType === 'feed') {
+        } else if (feed.feedType === 'feed' || feed.feedType === 'comment') {
             return renderStandardFeed();
         } else {
             return <div style={styles.centered}>不支持的动态类型: {feed.feedType}</div>;
