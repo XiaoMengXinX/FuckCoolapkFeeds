@@ -2,6 +2,8 @@ import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
 import Head from 'next/head';
 import MarkdownIt from 'markdown-it';
+import markdownItMultimdTable from 'markdown-it-multimd-table';
+import markdownItTaskLists from 'markdown-it-task-lists';
 import hljs from 'highlight.js';
 
 const LazyImage = ({ src, alt, style, onClick }) => {
@@ -166,6 +168,7 @@ const FeedPage = ({ feed, error }) => {
 
     const cleanCodeContent = (str) => {
         return str
+            .replace(/<!--break-->/g, '')
             .replace(/<a class="feed-link-url".*?>(.*?)<\/a>/g, '$1')
             .replace(/<a class="feed-link-tag".*?>(.*?)<\/a>/g, '$1')
             .replace(/<a class="feed-link-uname".*?>(.*?)<\/a>/g, '$1');
@@ -188,6 +191,17 @@ const FeedPage = ({ feed, error }) => {
                 }
                 return '<pre><code class="hljs">' + mdInstance.utils.escapeHtml(cleanedStr) + '</code></pre>';
             }
+        })
+        .use(markdownItMultimdTable, {
+            multiline: true,
+            rowspan: true,
+            headerless: true,
+            multibody: true,
+        })
+        .use(markdownItTaskLists, {
+            enabled: true,
+            label: true,
+            labelAfter: true,
         });
 
         // Also clean links from inline code

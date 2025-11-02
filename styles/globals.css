@@ -105,3 +105,90 @@ input:checked + .slider:before {
   background-color: transparent;
   border-radius: 0;
 }
+
+/* Table styles */
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+  overflow-x: auto;
+  display: block;
+}
+
+.markdown-content table thead {
+  background-color: #f6f8fa;
+}
+
+.markdown-content table th,
+.markdown-content table td {
+  border: 1px solid #dfe2e5;
+  padding: 8px 13px;
+  text-align: left;
+}
+
+.markdown-content table th {
+  font-weight: 600;
+}
+
+.markdown-content table tr:nth-child(even) {
+  background-color: #f6f8fa;
+}
+
+.markdown-content table tr:hover {
+  background-color: #f0f0f0;
+}
+
+/* Responsive table */
+@media screen and (max-width: 768px) {
+  .markdown-content table {
+    font-size: 0.9em;
+  }
+  
+  .markdown-content table th,
+  .markdown-content table td {
+    padding: 6px 8px;
+  }
+}
+
+/* List styles */
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 2em;
+  margin: 16px 0;
+}
+
+.markdown-content li {
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.markdown-content ul ul,
+.markdown-content ul ol,
+.markdown-content ol ul,
+.markdown-content ol ol {
+  margin: 8px 0;
+}
+
+/* Task list styles */
+.markdown-content .task-list-item {
+  list-style-type: none;
+  margin-left: -1.5em;
+}
+
+.markdown-content .task-list-item input[type="checkbox"] {
+  margin-right: 0.5em;
+  cursor: pointer;
+}
+
+.markdown-content .task-list-item input[type="checkbox"]:checked + label {
+  text-decoration: line-through;
+  color: #6c757d;
+}
+
+/* Nested list indentation */
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+  padding-left: 1.5em;
+}
