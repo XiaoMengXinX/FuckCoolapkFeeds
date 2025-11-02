@@ -499,7 +499,7 @@ const FeedPage = ({ feed, error, isTelegram }) => {
                     <header style={styles.telegramHeader}>
                         <h1 style={styles.telegramTitle}>{feed.message_title || feed.title}</h1>
                         <div style={styles.telegramSourceLink}>
-                            <a href={`https://www.coolapk.com/feed/${id}`} rel="noopener noreferrer" style={styles.telegramLink}>
+                            <a href={`https://www.coolapk1s.com/feed/${id}`} rel="noopener noreferrer" style={styles.telegramLink}>
                                 查看原文
                             </a>
                         </div>
