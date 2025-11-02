@@ -125,6 +125,45 @@ const FeedPage = ({ feed, error }) => {
     const [isPC, setIsPC] = useState(false);
     const [formattedDate, setFormattedDate] = useState('');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
+    
+    // Function to detect if content contains Markdown syntax
+    const detectMarkdown = (content) => {
+        if (!content) return false;
+        
+        // Decode HTML entities first
+        const decodeEntities = (text) => {
+            if (typeof window === 'undefined') {
+                return text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+            }
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = text;
+            return textarea.value;
+        };
+        
+        const decoded = decodeEntities(content);
+        
+        // Check for common Markdown patterns
+        const markdownPatterns = [
+            /^#{1,6}\s+.+$/m,           // Headers: # ## ### etc
+            /\*\*[^*]+\*\*/,            // Bold: **text**
+            /__[^_]+__/,                // Bold: __text__
+            /\*[^*]+\*/,                // Italic: *text*
+            /_[^_]+_/,                  // Italic: _text_
+            /\[.+?\]\(.+?\)/,           // Links: [text](url)
+            /!\[.*?\]\(.+?\)/,          // Images: ![alt](url)
+            /^[-*+]\s+.+$/m,            // Unordered lists: - * +
+            /^\d+\.\s+.+$/m,            // Ordered lists: 1. 2.
+            /^>\s+.+$/m,                // Blockquotes: >
+            /```[\s\S]*?```/,           // Code blocks: ```
+            /`[^`]+`/,                  // Inline code: `code`
+            /^\|.+\|$/m,                // Tables: |col1|col2|
+            /^---+$/m,                  // Horizontal rules: ---
+            /~~[^~]+~~/,                // Strikethrough: ~~text~~
+        ];
+        
+        // Return true if any pattern matches
+        return markdownPatterns.some(pattern => pattern.test(decoded));
+    };
 
     const processHtmlLinks = (html) => {
         return html
@@ -221,6 +260,26 @@ const FeedPage = ({ feed, error }) => {
 
         if (feed) {
             setFormattedDate(new Date(feed.dateline * 1000).toLocaleString());
+            
+            // Auto-detect Markdown content
+            let contentToCheck = '';
+            if (feed.feedType === 'feedArticle' && feed.message_raw_output) {
+                try {
+                    const messageParts = JSON.parse(feed.message_raw_output);
+                    contentToCheck = messageParts
+                        .filter(part => part.type === 'text')
+                        .map(part => part.message)
+                        .join('\n');
+                } catch (e) {
+                    contentToCheck = feed.message || '';
+                }
+            } else {
+                contentToCheck = feed.message || '';
+            }
+            
+            if (detectMarkdown(contentToCheck)) {
+                setIsMarkdownEnabled(true);
+            }
         }
 
         return () => window.removeEventListener('resize', checkIsPC);
