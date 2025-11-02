@@ -144,16 +144,8 @@ const FeedPage = ({ feed, error }) => {
         
         // Check for common Markdown patterns
         const markdownPatterns = [
-            /^#{1,6}\s+.+$/m,           // Headers: # ## ### etc
             /\*\*[^*]+\*\*/,            // Bold: **text**
             /__[^_]+__/,                // Bold: __text__
-            /\*[^*]+\*/,                // Italic: *text*
-            /_[^_]+_/,                  // Italic: _text_
-            /\[.+?\]\(.+?\)/,           // Links: [text](url)
-            /!\[.*?\]\(.+?\)/,          // Images: ![alt](url)
-            /^[-*+]\s+.+$/m,            // Unordered lists: - * +
-            /^\d+\.\s+.+$/m,            // Ordered lists: 1. 2.
-            /^>\s+.+$/m,                // Blockquotes: >
             /```[\s\S]*?```/,           // Code blocks: ```
             /`[^`]+`/,                  // Inline code: `code`
             /^\|.+\|$/m,                // Tables: |col1|col2|
