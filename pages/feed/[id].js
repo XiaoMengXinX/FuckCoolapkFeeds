@@ -159,9 +159,22 @@ const FeedPage = ({ feed, error }) => {
         return markdownPatterns.some(pattern => pattern.test(decoded));
     };
 
+
+    const convertCoolapkFeedLinks = (url) => {
+        const feedMatch = url.match(/(?:https?:\/\/)?(?:www\.)?coolapk\.com\/feed\/(\d+)/);
+        if (feedMatch) {
+            const feedId = feedMatch[1];
+            return `https://coolapk1s.com/feed/${feedId}`;
+        }
+        return url;
+    };
+
     const processHtmlLinks = (html) => {
         return html
-            .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>.*?<\/a>/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+            .replace(/<a class="feed-link-url".*?href="([^"]*)".*?>.*?<\/a>/g, (match, url) => {
+                const convertedUrl = convertCoolapkFeedLinks(url);
+                return `<a href="${convertedUrl}" target="_blank" rel="noopener noreferrer">${convertedUrl}</a>`;
+            })
             .replace(/<a class="feed-link-tag".*?href="([^"]*)".*?>#(.*?)#<\/a>/g, '<a href="https://www.coolapk.com$1" target="_blank" rel="noopener noreferrer">#$2#</a>')
             .replace(/<a class="feed-link-uname".*?href="([^"]*)".*?>(.*?)<\/a>/g, '<a href="https://www.coolapk.com$1" target="_blank" rel="noopener noreferrer">$2</a>');
     };
@@ -242,7 +255,9 @@ const FeedPage = ({ feed, error }) => {
             
             // Convert standalone Coolapk HTML links to Markdown links
             processedSrc = processedSrc
-                .replace(/<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>/g, '$1')
+                .replace(/<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>/g, (match, url) => {
+                    return convertCoolapkFeedLinks(url);
+                })
                 .replace(/<a class="feed-link-tag"[^>]*?href="([^"]*)"[^>]*?>#(.*?)#<\/a>/g, '[#$2#](https://www.coolapk.com$1)')
                 .replace(/<a class="feed-link-uname"[^>]*?href="([^"]*)"[^>]*?>(.*?)<\/a>/g, '[$2](https://www.coolapk.com$1)');
             

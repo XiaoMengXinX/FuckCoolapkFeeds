@@ -106,6 +106,23 @@ input:checked + .slider:before {
   border-radius: 0;
 }
 
+/* Link styles - prevent overflow */
+.markdown-content a {
+  word-break: break-all;
+  overflow-wrap: break-word;
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content p {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 /* Table styles */
 .markdown-content table {
   border-collapse: collapse;
@@ -148,6 +165,16 @@ input:checked + .slider:before {
   .markdown-content table td {
     padding: 6px 8px;
   }
+}
+
+/* Image styles - prevent overflow */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 16px auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* List styles */
