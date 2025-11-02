@@ -119,7 +119,7 @@ const generateOgDescription = (message) => {
     return cleanMessage;
 };
 
-const FeedPage = ({ feed, error }) => {
+const FeedPage = ({ feed, error, isTelegram }) => {
     const router = useRouter();
     const { id } = router.query;
     const [isBarVisible, setIsBarVisible] = useState(true);
@@ -379,6 +379,19 @@ const FeedPage = ({ feed, error }) => {
                     );
                 } else if (part.type === 'image') {
                     const imageUrl = proxyImage(part.url);
+                    // Telegram 使用静态图片，其他使用懒加载
+                    if (isTelegram) {
+                        return (
+                            <div key={index} style={styles.imageContainer}>
+                                <img
+                                    src={imageUrl}
+                                    alt={part.description || `feed-image-${index}`}
+                                    style={{...(isPC ? {...styles.image, maxWidth: '80%'} : styles.image)}}
+                                />
+                                {part.description && <div style={styles.imageDescription}>{part.description}</div>}
+                            </div>
+                        );
+                    }
                     return (
                         <div key={index} style={styles.imageContainer}>
                             <LazyImage
@@ -422,15 +435,87 @@ const FeedPage = ({ feed, error }) => {
                     <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage.replace(/\n/g, '<br />')) }} />
                 )}
                 {feed.picArr && feed.picArr.length > 0 && (
-                    <ImageCarousel
-                        images={feed.picArr.map(proxyImage)}
-                        onImageClick={setSelectedImage}
-                    />
+                    isTelegram ? (
+                        // Telegram 使用简单的图片列表
+                        <div>
+                            {feed.picArr.map((img, index) => (
+                                <div key={index} style={styles.imageContainer}>
+                                    <img
+                                        src={proxyImage(img)}
+                                        alt={`image-${index}`}
+                                        style={styles.image}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <ImageCarousel
+                            images={feed.picArr.map(proxyImage)}
+                            onImageClick={setSelectedImage}
+                        />
+                    )
                 )}
             </div>
         );
     };
 
+    // Telegram Instant View 简化版 - 纯静态 HTML，无 JavaScript
+    if (isTelegram) {
+        if (error) {
+            return (
+                <div style={styles.telegramContainer}>
+                    <Head>
+                        <title>Error</title>
+                    </Head>
+                    <div style={styles.centered}>Error: {error}</div>
+                </div>
+            );
+        }
+
+        if (!feed) {
+            return (
+                <div style={styles.telegramContainer}>
+                    <Head>
+                        <title>Not Found</title>
+                    </Head>
+                    <div style={styles.centered}>No feed data found.</div>
+                </div>
+            );
+        }
+
+        return (
+            <div style={styles.telegramContainer}>
+                <Head>
+                    <title>{feed.feedType === 'feedArticle' ? feed.message_title : feed.title}</title>
+                    <meta property="og:title" content={feed.feedType === 'feedArticle' ? feed.message_title : feed.title} />
+                    <meta property="og:description" content={generateOgDescription(feed.message)} />
+                    <meta property="article:author" content={feed.username} />
+                    <meta property="article:published_time" content={new Date(feed.dateline * 1000).toISOString()} />
+                    {feed.picArr && feed.picArr.length > 0 && (
+                        <meta property="og:image" content={proxyImage(feed.picArr[0])} />
+                    )}
+                </Head>
+                <article>
+                    <header style={styles.telegramHeader}>
+                        <h1 style={styles.telegramTitle}>{feed.message_title || feed.title}</h1>
+                        <div style={styles.telegramSourceLink}>
+                            <a href={`https://www.coolapk.com/feed/${id}`} rel="noopener noreferrer" style={styles.telegramLink}>
+                                查看原文
+                            </a>
+                        </div>
+                        <div style={styles.telegramMeta}>
+                            <span style={styles.telegramAuthor}>{feed.username}</span>
+                            <span style={styles.telegramSeparator}>·</span>
+                            <time style={styles.telegramDate}>{new Date(feed.dateline * 1000).toLocaleString()}</time>
+                        </div>
+                    </header>
+                    <div style={styles.telegramContent}>{renderFeedContent()}</div>
+                </article>
+            </div>
+        );
+    }
+
+    // 标准版页面
     return (
         <div style={styles.container}>
             <Head>
@@ -496,11 +581,15 @@ const FeedPage = ({ feed, error }) => {
 };
 
 export async function getServerSideProps(context) {
-    const { res, params } = context;
+    const { res, params, req } = context;
     const { id } = params;
 
-    const protocol = context.req.headers['x-forwarded-proto'] || 'http';
-    const host = context.req.headers['x-forwarded-host'] || context.req.headers.host;
+    // 检测是否为 Telegram User-Agent
+    const userAgent = req.headers['user-agent'] || '';
+    const isTelegram = userAgent.includes('Telegram');
+
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
     const apiUrl = `${protocol}://${host}/api/feed?id=${id}`;
 
     try {
@@ -510,8 +599,15 @@ export async function getServerSideProps(context) {
         }
         const data = await response.json();
 
-        // Only cache if data is successfully fetched and not empty
-        if (data && data.data && Object.keys(data.data).length > 0) {
+        // 为 Telegram 禁用缓存，其他情况正常缓存
+        if (isTelegram) {
+            res.setHeader(
+                'Cache-Control',
+                'no-cache, no-store, must-revalidate'
+            );
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        } else if (data && data.data && Object.keys(data.data).length > 0) {
             res.setHeader(
                 'Cache-Control',
                 'public, s-maxage=604800, stale-while-revalidate=86400'
@@ -520,8 +616,9 @@ export async function getServerSideProps(context) {
 
         return {
             props: {
-                feed: data.data || null, // Ensure feed is null if data.data is missing
+                feed: data.data || null,
                 error: null,
+                isTelegram,
             },
         };
     } catch (error) {
@@ -529,6 +626,7 @@ export async function getServerSideProps(context) {
             props: {
                 feed: null,
                 error: error.message,
+                isTelegram,
             },
         };
     }
@@ -722,7 +820,61 @@ const styles = {
     switchLabel: {
         fontSize: '1em',
         marginRight: '10px',
-    }
+    },
+    // Telegram Instant View 样式
+    telegramContainer: {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        maxWidth: '680px',
+        margin: '0 auto',
+        padding: '20px',
+        backgroundColor: '#fff',
+        color: '#222',
+        lineHeight: '1.6',
+    },
+    telegramHeader: {
+        marginBottom: '30px',
+        paddingBottom: '20px',
+        borderBottom: '1px solid #e5e5e5',
+    },
+    telegramTitle: {
+        fontSize: '2em',
+        fontWeight: 'bold',
+        marginBottom: '15px',
+        lineHeight: '1.3',
+        color: '#000',
+    },
+    telegramSourceLink: {
+        marginTop: '12px',
+        marginBottom: '15px',
+    },
+    telegramMeta: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontSize: '0.85em',
+        color: '#707579',
+    },
+    telegramAuthor: {
+        fontWeight: '500',
+        color: '#707579',
+    },
+    telegramSeparator: {
+        color: '#707579',
+    },
+    telegramDate: {
+        color: '#707579',
+    },
+    telegramContent: {
+        fontSize: '1.05em',
+        lineHeight: '1.7',
+        marginBottom: '30px',
+    },
+    telegramLink: {
+        color: '#2481cc',
+        textDecoration: 'none',
+        fontSize: '0.9em',
+        fontWeight: '500',
+    },
 };
 
 export default FeedPage;
