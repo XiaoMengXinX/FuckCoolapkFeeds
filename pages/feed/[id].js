@@ -278,6 +278,12 @@ const FeedPage = ({ feed, error }) => {
     })();
 
     useEffect(() => {
+        // 清除URL参数
+        if (typeof window !== "undefined" && window.location.search) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+
         const checkIsPC = () => {
             if (typeof window !== "undefined") {
                 setIsPC(window.matchMedia("(min-width: 768px)").matches);

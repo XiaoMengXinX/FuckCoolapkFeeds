@@ -118,6 +118,28 @@ input:checked + .slider:before {
   text-decoration: underline;
 }
 
+/* Non-markdown link styles */
+a {
+  word-break: break-all;
+  overflow-wrap: break-word;
+  color: #0366d6;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+a:visited {
+  color: #6f42c1;
+}
+
+a:active {
+  color: #d73a49;
+}
+
 .markdown-content p {
   word-wrap: break-word;
   overflow-wrap: break-word;
