@@ -219,9 +219,16 @@ const FeedPage = ({ feed, error }) => {
                 return placeholder;
             });
             
-            // Convert Coolapk HTML links to Markdown links
+            // Handle nested Markdown links with feed-link-url inside
+            // Pattern: [text](<a class="feed-link-url" href="url">...</a>)
+            processedSrc = processedSrc.replace(
+                /\[([^\]]+)\]\(<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>\)/g,
+                '[$1]($2)'
+            );
+            
+            // Convert standalone Coolapk HTML links to Markdown links
             processedSrc = processedSrc
-                .replace(/<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>/g, '[$1]($1)')
+                .replace(/<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>/g, '$1')
                 .replace(/<a class="feed-link-tag"[^>]*?href="([^"]*)"[^>]*?>#(.*?)#<\/a>/g, '[#$2#](https://www.coolapk.com$1)')
                 .replace(/<a class="feed-link-uname"[^>]*?href="([^"]*)"[^>]*?>(.*?)<\/a>/g, '[$2](https://www.coolapk.com$1)');
             
