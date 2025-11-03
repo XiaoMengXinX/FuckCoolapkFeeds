@@ -13,12 +13,23 @@
   ],
   "redirects": [
     {
+      "source": "/(feed|picture)/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "User-Agent",
+          "value": ".*Telegram.*"
+        }
+      ],
+      "destination": "/iv/:id"
+    },
+    {
       "source": "/",
       "destination": "https://github.com/XiaoMengXinX/FuckCoolapkFeeds",
       "permanent": false
     },
     {
-      "source": "/((?!api|feed|_next|picture).*)",
+      "source": "/((?!api|feed|iv|_next|picture).*)",
       "destination": "https://www.coolapk.com/$1",
       "permanent": false
     }

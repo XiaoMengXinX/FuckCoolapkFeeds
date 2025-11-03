@@ -17,6 +17,7 @@
 .DS_Store
 .vercel
 .next
+.idea
 node_modules
 
 # Environment variables
