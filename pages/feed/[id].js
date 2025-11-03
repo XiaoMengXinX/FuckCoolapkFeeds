@@ -611,7 +611,13 @@ export async function getServerSideProps(context) {
     const apiUrl = `${protocol}://${host}/api/feed?id=${id}`;
 
     try {
-        const response = await fetch(apiUrl);
+        const headers = {};
+        const authToken = process.env.INTERNAL_AUTH_TOKEN;
+        if (authToken) {
+            headers['X-Internal-Auth'] = authToken;
+        }
+        
+        const response = await fetch(apiUrl, { headers });
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }

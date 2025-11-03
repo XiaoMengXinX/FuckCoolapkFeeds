@@ -3,15 +3,29 @@ package api
 import (
 	"context"
 	"errors"
-	coolapk "github.com/XiaoMengXinX/CoolapkApi-Go"
-	ent "github.com/XiaoMengXinX/CoolapkApi-Go/entities"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
+
+	coolapk "github.com/XiaoMengXinX/CoolapkApi-Go"
+	ent "github.com/XiaoMengXinX/CoolapkApi-Go/entities"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
+	authToken := r.Header.Get("X-Internal-Auth")
+	expectedToken := os.Getenv("INTERNAL_AUTH_TOKEN")
+
+	fmt.Print(expectedToken)
+
+	if expectedToken != "" && authToken != expectedToken {
+		log.Printf("Unauthorized access attempt from %s", r.RemoteAddr)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		http.Error(w, "Query parameter 'id' is required", http.StatusBadRequest)
