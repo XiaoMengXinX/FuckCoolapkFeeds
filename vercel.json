@@ -5,6 +5,12 @@
     }
   },
   "installCommand": "npm install",
+  "rewrites": [
+    {
+      "source": "/picture/:id",
+      "destination": "/feed/:id"
+    }
+  ],
   "redirects": [
     {
       "source": "/",
@@ -12,7 +18,7 @@
       "permanent": false
     },
     {
-      "source": "/((?!api|feed|_next/).*)",
+      "source": "/((?!api|feed|_next|picture).*)",
       "destination": "https://www.coolapk.com/$1",
       "permanent": false
     }

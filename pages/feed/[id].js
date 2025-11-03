@@ -567,7 +567,7 @@ const FeedPage = ({ feed, error, isTelegram }) => {
                     <h1 style={styles.telegramTitle}>{feed.message_title || feed.title}</h1>
                     <section style={styles.telegramContentSection}>
                         <p style={styles.telegramSourceLink}>
-                            <a href={`https://www.coolapk.com/feed/${id}`} rel="noopener noreferrer" style={styles.telegramLink}>
+                            <a href={`https://www.coolapk.com/${feed.feedType === 'picture' ? 'picture' : 'feed'}/${id}`} rel="noopener noreferrer" style={styles.telegramLink}>
                                 查看原文
                             </a>
                         </p>
@@ -616,7 +616,7 @@ const FeedPage = ({ feed, error, isTelegram }) => {
             {isBarVisible && id && (
                 <div style={styles.floatingBarContainer}>
                     <div style={styles.floatingBar}>
-                        <a href={`https://www.coolapk.com/feed/${id}`} target="_blank" rel="noopener noreferrer" style={styles.originalLinkButton}>
+                        <a href={`https://www.coolapk.com/${feed && feed.feedType === 'picture' ? 'picture' : 'feed'}/${id}`} target="_blank" rel="noopener noreferrer" style={styles.originalLinkButton}>
                             打开原链接
                         </a>
                         <button onClick={() => setIsBarVisible(false)} style={styles.closeButton}>
