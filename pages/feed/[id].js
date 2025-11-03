@@ -119,13 +119,31 @@ const generateOgDescription = (message) => {
     return cleanMessage;
 };
 
-const FeedPage = ({ feed, error, isTelegram }) => {
+const renderOgTags = (feed, proxyImage) => {
+    if (!feed) return null;
+    
+    return (
+        <>
+            <meta property="og:title" content={feed.feedType === 'feedArticle' ? feed.message_title : feed.title} />
+            <meta property="og:description" content={generateOgDescription(feed.message)} />
+            <meta name="twitter:card" content="summary_large_image" />
+            {feed.picArr && feed.picArr.length > 0 && (
+                <>
+                    <meta property="og:image" content={proxyImage(feed.picArr[0])} />
+                    <meta property="twitter:image" content={proxyImage(feed.picArr[0])} />
+                </>
+            )}
+        </>
+    );
+};
+
+const FeedPage = ({ feed, error, isTelegram, formattedDate: serverFormattedDate }) => {
     const router = useRouter();
     const { id } = router.query;
     const [isBarVisible, setIsBarVisible] = useState(true);
     const [selectedImage, setSelectedImage] = useState(null);
     const [isPC, setIsPC] = useState(false);
-    const [formattedDate, setFormattedDate] = useState('');
+    const [formattedDate, setFormattedDate] = useState(serverFormattedDate || '');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
     
     // Function to detect if content contains Markdown syntax
@@ -293,7 +311,10 @@ const FeedPage = ({ feed, error, isTelegram }) => {
         window.addEventListener('resize', checkIsPC);
 
         if (feed) {
-            setFormattedDate(new Date(feed.dateline * 1000).toLocaleString());
+            // 只在客户端且没有服务端日期时才格式化（使用客户端本地时区）
+            if (!serverFormattedDate) {
+                setFormattedDate(new Date(feed.dateline * 1000).toLocaleString());
+            }
             
             // Auto-detect Markdown content
             let contentToCheck = '';
@@ -461,24 +482,13 @@ const FeedPage = ({ feed, error, isTelegram }) => {
 
     // Telegram Instant View 简化版 - 纯静态 HTML，无 JavaScript
     if (isTelegram) {
-        if (error) {
+        if (error || !feed) {
             return (
                 <div style={styles.telegramContainer}>
                     <Head>
-                        <title>Error</title>
+                        <title>{error ? 'Error' : 'Not Found'}</title>
                     </Head>
-                    <div style={styles.centered}>Error: {error}</div>
-                </div>
-            );
-        }
-
-        if (!feed) {
-            return (
-                <div style={styles.telegramContainer}>
-                    <Head>
-                        <title>Not Found</title>
-                    </Head>
-                    <div style={styles.centered}>No feed data found.</div>
+                    <div style={styles.centered}>{error ? `Error: ${error}` : 'No feed data found.'}</div>
                 </div>
             );
         }
@@ -487,13 +497,7 @@ const FeedPage = ({ feed, error, isTelegram }) => {
             <div style={styles.telegramContainer}>
                 <Head>
                     <title>{feed.feedType === 'feedArticle' ? feed.message_title : feed.title}</title>
-                    <meta property="og:title" content={feed.feedType === 'feedArticle' ? feed.message_title : feed.title} />
-                    <meta property="og:description" content={generateOgDescription(feed.message)} />
-                    <meta property="article:author" content={feed.username} />
-                    <meta property="article:published_time" content={new Date(feed.dateline * 1000).toISOString()} />
-                    {feed.picArr && feed.picArr.length > 0 && (
-                        <meta property="og:image" content={proxyImage(feed.picArr[0])} />
-                    )}
+                    {renderOgTags(feed, proxyImage)}
                 </Head>
                 <article>
                     <header style={styles.telegramHeader}>
@@ -506,7 +510,7 @@ const FeedPage = ({ feed, error, isTelegram }) => {
                         <div style={styles.telegramMeta}>
                             <span style={styles.telegramAuthor}>{feed.username}</span>
                             <span style={styles.telegramSeparator}>·</span>
-                            <time style={styles.telegramDate}>{new Date(feed.dateline * 1000).toLocaleString()}</time>
+                            <time style={styles.telegramDate}>{formattedDate}</time>
                         </div>
                     </header>
                     <div style={styles.telegramContent}>{renderFeedContent()}</div>
@@ -519,20 +523,8 @@ const FeedPage = ({ feed, error, isTelegram }) => {
     return (
         <div style={styles.container}>
             <Head>
-                <title>{feed ? (feed.feedType === 'feedArticle' ? feed.message_title : feed.title) : 'Loading...'}</title>
-                {feed && (
-                    <>
-                        <meta property="og:title" content={feed.feedType === 'feedArticle' ? feed.message_title : feed.title} />
-                        <meta property="og:description" content={generateOgDescription(feed.message)} />
-                        <meta name="twitter:card" content="summary_large_image" />
-                        {feed.picArr && feed.picArr.length > 0 && (
-                            <meta property="og:image" content={proxyImage(feed.picArr[0])} />
-                        )}
-                         {feed.picArr && feed.picArr.length > 0 && (
-                            <meta property="twitter:image" content={proxyImage(feed.picArr[0])} />
-                        )}
-                    </>
-                )}
+                <title>{feed ? (feed.feedType === 'feedArticle' ? feed.message_title : feed.title) : (error ? 'Error' : 'Loading...')}</title>
+                {!error && renderOgTags(feed, proxyImage)}
             </Head>
             {feed && (
                 <div style={styles.header}>
@@ -614,11 +606,20 @@ export async function getServerSideProps(context) {
             );
         }
 
+        // 在服务端预先格式化日期，避免hydration不匹配
+        let formattedDate = '';
+        if (isTelegram && data.data && data.data.dateline) {
+            formattedDate = new Date(data.data.dateline * 1000).toLocaleString('zh-CN', {
+                timeZone: 'Asia/Shanghai'
+            });
+        }
+
         return {
             props: {
                 feed: data.data || null,
                 error: null,
                 isTelegram,
+                formattedDate,
             },
         };
     } catch (error) {
@@ -627,6 +628,7 @@ export async function getServerSideProps(context) {
                 feed: null,
                 error: error.message,
                 isTelegram,
+                formattedDate: '',
             },
         };
     }
