@@ -2,6 +2,8 @@ import MetaTags from '../../components/feed/MetaTags';
 import { fetchFeedData } from '../../lib/feedLoader';
 import { styles } from '../../styles/feedStyles';
 import Head from 'next/head';
+import { processHtmlLinks } from '../../lib/linkProcessor';
+import { getMarkdownRenderer, detectMarkdown, decodeEntities } from '../../lib/markdownProcessor';
 
 const proxyImage = (url) => {
     if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
@@ -10,9 +12,11 @@ const proxyImage = (url) => {
     return url;
 };
 
-import { processHtmlLinks } from '../../lib/linkProcessor';
 
-const InstantViewPage = ({ feed, error, id }) => {
+// 获取markdown渲染器实例
+const md = getMarkdownRenderer();
+
+const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
     const renderFeedContent = () => {
         if (!feed) {
             return <div style={styles.centered}>No feed data found.</div>;
@@ -24,8 +28,20 @@ const InstantViewPage = ({ feed, error, id }) => {
                 const messageParts = JSON.parse(feed.message_raw_output);
                 messageContent = messageParts.map((part, index) => {
                     if (part.type === 'text') {
-                        const htmlMessage = part.message.replace(/\\n/g, '\n').replace(/\n/g, '<br />');
-                        return <div key={index} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage) }} />;
+                        const formattedMessage = part.message.replace(/\\n/g, '\n');
+                        
+                        if (isMarkdownEnabled) {
+                            return (
+                                <div
+                                    key={index}
+                                    className="markdown-content"
+                                    dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(formattedMessage).replace(/\n/g, '  \n')) }}
+                                />
+                            );
+                        } else {
+                            const htmlMessage = formattedMessage.replace(/\n/g, '<br />');
+                            return <div key={index} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage) }} />;
+                        }
                     } else if (part.type === 'image') {
                         return (
                             <div key={index} style={styles.imageContainer}>
@@ -41,17 +57,33 @@ const InstantViewPage = ({ feed, error, id }) => {
                 messageContent = <div style={{ whiteSpace: 'pre-wrap' }} dangerouslySetInnerHTML={{ __html: processedMessage }} />;
             }
         } else {
-            const processedMessage = processHtmlLinks(feed.message.replace(/\n/g, '<br />'));
-            messageContent = (
-                <>
-                    <div dangerouslySetInnerHTML={{ __html: processedMessage }} />
-                    {feed.picArr && feed.picArr.map((img, index) => (
-                        <div key={index} style={styles.imageContainer}>
-                            <img src={proxyImage(img)} alt={`image-${index}`} style={styles.image} />
-                        </div>
-                    ))}
-                </>
-            );
+            if (isMarkdownEnabled) {
+                messageContent = (
+                    <>
+                        <div
+                            className="markdown-content"
+                            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(feed.message).replace(/\n/g, '  \n')) }}
+                        />
+                        {feed.picArr && feed.picArr.map((img, index) => (
+                            <div key={index} style={styles.imageContainer}>
+                                <img src={proxyImage(img)} alt={`image-${index}`} style={styles.image} />
+                            </div>
+                        ))}
+                    </>
+                );
+            } else {
+                const processedMessage = processHtmlLinks(feed.message.replace(/\n/g, '<br />'));
+                messageContent = (
+                    <>
+                        <div dangerouslySetInnerHTML={{ __html: processedMessage }} />
+                        {feed.picArr && feed.picArr.map((img, index) => (
+                            <div key={index} style={styles.imageContainer}>
+                                <img src={proxyImage(img)} alt={`image-${index}`} style={styles.image} />
+                            </div>
+                        ))}
+                    </>
+                );
+            }
         }
         return messageContent;
     };
@@ -110,6 +142,26 @@ export async function getServerSideProps(context) {
 
     const data = await fetchFeedData(id, req);
 
+    // 检测是否需要启用markdown
+    let isMarkdownEnabled = false;
+    if (data.props.feed) {
+        let contentToCheck = '';
+        if (data.props.feed.feedType === 'feedArticle' && data.props.feed.message_raw_output) {
+            try {
+                const messageParts = JSON.parse(data.props.feed.message_raw_output);
+                contentToCheck = messageParts
+                    .filter(p => p.type === 'text')
+                    .map(p => p.message)
+                    .join('\n');
+            } catch (e) {
+                contentToCheck = data.props.feed.message || '';
+            }
+        } else {
+            contentToCheck = data.props.feed.message || '';
+        }
+        isMarkdownEnabled = detectMarkdown(contentToCheck);
+    }
+
     if (data.props.feed) {
         res.setHeader(
             'Cache-Control',
@@ -121,7 +173,13 @@ export async function getServerSideProps(context) {
         );
     }
 
-    return data;
+    return {
+        props: {
+            ...data.props,
+            id,
+            isMarkdownEnabled
+        }
+    };
 }
 
 export default InstantViewPage;

@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import { processHtmlLinks, convertCoolapkFeedLinks } from '../../lib/linkProcessor';
-import MarkdownIt from 'markdown-it';
-import markdownItMultimdTable from 'markdown-it-multimd-table';
-import markdownItTaskLists from 'markdown-it-task-lists';
-import hljs from 'highlight.js';
+import { processHtmlLinks } from '../../lib/linkProcessor';
+import { getMarkdownRenderer, detectMarkdown } from '../../lib/markdownProcessor';
 
 import MetaTags from '../../components/feed/MetaTags';
 import FeedContent from '../../components/feed/FeedContent';
@@ -23,53 +20,7 @@ const FeedPage = ({ feed, error, id }) => {
     const [isPC, setIsPC] = useState(false);
     const [formattedDate, setFormattedDate] = useState('');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
-
-    const detectMarkdown = (content) => {
-        if (!content) return false;
-        const decodeEntities = (text) => {
-            if (typeof window === 'undefined') return text.replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&');
-            const textarea = document.createElement('textarea');
-            textarea.innerHTML = text;
-            return textarea.value;
-        };
-        const decoded = decodeEntities(content);
-        const markdownPatterns = [/\*\*[^*]+\*\*/, /__[^_]+__/, /```[\s\S]*?```/, /`[^`]+`/, /^\|.+\|$/m, /^---+$/m, /~~[^~]+~~/];
-        return markdownPatterns.some(pattern => pattern.test(decoded));
-    };
-
-    const cleanCodeContent = (str) => str.replace(/<!--break-->/g, '').replace(/<a class="feed-link-url".*?>(.*?)<\/a>/g, '$1').replace(/<a class="feed-link-tag".*?>(.*?)<\/a>/g, '$1').replace(/<a class="feed-link-uname".*?>(.*?)<\/a>/g, '$1');
-
-    const md = (() => {
-        const mdInstance = new MarkdownIt({
-            html: true, linkify: true, typographer: true,
-            highlight: function (str, lang) {
-                const cleanedStr = cleanCodeContent(str);
-                if (lang && hljs.getLanguage(lang)) {
-                    try { return '<pre><code class="hljs">' + hljs.highlight(cleanedStr, { language: lang, ignoreIllegals: true }).value + '</code></pre>'; } catch (__) { }
-                }
-                return '<pre><code class="hljs">' + mdInstance.utils.escapeHtml(cleanedStr) + '</code></pre>';
-            }
-        }).use(markdownItMultimdTable, { multiline: true, rowspan: true, headerless: true, multibody: true }).use(markdownItTaskLists, { enabled: true, label: true, labelAfter: true });
-        const defaultCodeInline = mdInstance.renderer.rules.code_inline;
-        mdInstance.renderer.rules.code_inline = (tokens, idx, options, env, self) => {
-            tokens[idx].content = cleanCodeContent(tokens[idx].content);
-            return defaultCodeInline(tokens, idx, options, env, self);
-        };
-        const originalRender = mdInstance.render.bind(mdInstance);
-        mdInstance.render = function (src, env) {
-            const codeBlocks = [], inlineCodeBlocks = [];
-            let processedSrc = src.replace(/```[\s\S]*?```/g, match => { codeBlocks.push(match); return `___CODE_BLOCK_${codeBlocks.length - 1}___`; });
-            processedSrc = processedSrc.replace(/`[^`]+`/g, match => { inlineCodeBlocks.push(match); return `___INLINE_CODE_${inlineCodeBlocks.length - 1}___`; });
-            processedSrc = processedSrc.replace(/\[([^\]]+)\]\(<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>\)/g, '[$1]($2)');
-            processedSrc = processedSrc.replace(/<a class="feed-link-url"[^>]*?href="([^"]*)"[^>]*?>.*?<\/a>/g, (match, url) => convertCoolapkFeedLinks(url))
-                .replace(/<a class="feed-link-tag"[^>]*?href="([^"]*)"[^>]*?>#(.*?)#<\/a>/g, '[#$2#](https://www.coolapk.com$1)')
-                .replace(/<a class="feed-link-uname"[^>]*?href="([^"]*)"[^>]*?>(.*?)<\/a>/g, '[$2](https://www.coolapk.com$1)');
-            processedSrc = processedSrc.replace(/___CODE_BLOCK_(\d+)___/g, (match, index) => codeBlocks[parseInt(index)]);
-            processedSrc = processedSrc.replace(/___INLINE_CODE_(\d+)___/g, (match, index) => inlineCodeBlocks[parseInt(index)]);
-            return originalRender(processedSrc, env);
-        };
-        return mdInstance;
-    })();
+    const md = getMarkdownRenderer();
 
     useEffect(() => {
         if (typeof window !== "undefined" && window.location.search) {
@@ -156,7 +107,7 @@ export async function getServerSideProps(context) {
             'Cache-Control',
             'public, max-age=60, s-maxage=60, stale-while-revalidate=0'
         );
-        
+
     }
 
     return { ...data, props: { ...data.props, id } };

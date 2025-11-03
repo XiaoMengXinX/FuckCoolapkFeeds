@@ -1,5 +1,6 @@
 import { LazyImage } from './LazyImage';
 import { ImageCarousel } from './ImageCarousel';
+import { decodeEntities } from '../../lib/markdownProcessor';
 
 const proxyImage = (url) => {
     if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
@@ -20,15 +21,6 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                 if (part.type === 'text') {
                     const formattedMessage = part.message.replace(/\\n/g, '\n');
                     let htmlMessage = formattedMessage.replace(/\n/g, '<br />');
-
-                    const decodeEntities = (text) => {
-                        if (typeof window === 'undefined') {
-                            return text.replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&');
-                        }
-                        const textarea = document.createElement('textarea');
-                        textarea.innerHTML = text;
-                        return textarea.value;
-                    };
 
                     return isMarkdownEnabled ? (
                         <div
@@ -74,12 +66,6 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
 
     const renderStandardFeed = () => {
         let htmlMessage = feed.message;
-        const decodeEntities = (text) => {
-            if (typeof window === 'undefined') return text;
-            const textarea = document.createElement('textarea');
-            textarea.innerHTML = text;
-            return textarea.value;
-        };
 
         return (
             <div>
