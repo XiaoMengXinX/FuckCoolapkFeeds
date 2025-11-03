@@ -74,6 +74,31 @@ const LazyImage = ({ src, alt, style, onClick }) => {
 
 const ImageCarousel = ({ images, onImageClick }) => {
     const scrollContainer = useRef(null);
+    const [carouselHeight, setCarouselHeight] = useState('600px'); // Default max height
+
+    useEffect(() => {
+        if (images && images.length > 0 && scrollContainer.current) {
+            const firstImageSrc = images[0];
+            const containerWidth = scrollContainer.current.offsetWidth;
+            const defaultHeight = containerWidth * 4 / 3;
+
+            const img = new Image();
+            img.src = firstImageSrc;
+
+            img.onload = () => {
+                const imageAspectRatio = img.height / img.width;
+                const calculatedImageHeight = containerWidth * imageAspectRatio;
+
+                // If image height is less than default container height, adjust the container height
+                if (calculatedImageHeight < defaultHeight) {
+                    setCarouselHeight(`${calculatedImageHeight}px`);
+                } else {
+                    // Otherwise, use the default aspect ratio height, but capped at 600px
+                    setCarouselHeight(`${Math.min(defaultHeight, 600)}px`);
+                }
+            };
+        }
+    }, [images]);
 
     const scroll = (direction) => {
         if (scrollContainer.current) {
@@ -81,6 +106,16 @@ const ImageCarousel = ({ images, onImageClick }) => {
             scrollContainer.current.scrollBy({ left: scrollAmount * direction, behavior: 'smooth' });
         }
     };
+
+    const dynamicCarouselStyle = {
+        ...styles.carousel,
+        maxHeight: carouselHeight,
+    };
+    
+    const dynamicImageContainerStyle = {
+        ...styles.carouselImageContainer,
+        height: carouselHeight,
+    }
 
     return (
         <div style={styles.carouselContainer}>
@@ -90,9 +125,9 @@ const ImageCarousel = ({ images, onImageClick }) => {
                     <button onClick={() => scroll(1)} style={{...styles.carouselButton, right: '10px'}}>{'>'}</button>
                 </>
             )}
-            <div ref={scrollContainer} style={styles.carousel}>
+            <div ref={scrollContainer} style={dynamicCarouselStyle}>
                 {images.map((img, index) => (
-                    <div key={index} style={styles.carouselImageContainer}>
+                    <div key={index} style={dynamicImageContainerStyle}>
                         <LazyImage
                             src={img}
                             alt={`carousel-image-${index}`}
@@ -125,16 +160,18 @@ const renderOgTags = (feed, proxyImage) => {
     const title = feed.feedType === 'feedArticle' ? feed.message_title : feed.title;
     const description = generateOgDescription(feed.message);
     
+    const coverImage = feed.message_cover || (feed.picArr && feed.picArr.length > 0 ? feed.picArr[0] : null);
+    
     return (
         <>
             <meta property="og:title" content={title} />
             <meta property="og:description" content={description} />
             <meta property="og:site_name" content="Coolapk1s" />
             <meta name="twitter:card" content="summary_large_image" />
-            {feed.picArr && feed.picArr.length > 0 && (
+            {coverImage && (
                 <>
-                    <meta property="og:image" content={proxyImage(feed.picArr[0])} />
-                    <meta property="twitter:image" content={proxyImage(feed.picArr[0])} />
+                    <meta property="og:image" content={proxyImage(coverImage)} />
+                    <meta property="twitter:image" content={proxyImage(coverImage)} />
                 </>
             )}
         </>
@@ -376,7 +413,7 @@ const FeedPage = ({ feed, error, isTelegram }) => {
 
         if (feed.feedType === 'feedArticle') {
             return renderArticleContent(feed.message_raw_output);
-        } else if (feed.feedType === 'feed' || feed.feedType === 'comment' || feed.feedType === 'picture') {
+        } else if (feed.feedType === 'feed' || feed.feedType === 'comment' || feed.feedType === 'picture' || feed.feedType === 'question') {
             return renderStandardFeed();
         } else {
             return <div style={styles.centered}>不支持的动态类型: {feed.feedType}</div>;
@@ -681,6 +718,8 @@ const styles = {
         alignItems: 'center',
         borderRadius: '8px',
         overflow: 'hidden',
+        position: 'relative', // Add relative positioning
+        backgroundColor: 'transparent', // Use transparent background to inherit from parent
     },
     carouselImage: {
         maxWidth: '100%',
@@ -693,6 +732,10 @@ const styles = {
         margin: '0 auto',
         display: 'block',
         boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+        position: 'absolute', // Use absolute positioning for centering
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)', // Center the image
     },
     carouselButton: {
         position: 'absolute',

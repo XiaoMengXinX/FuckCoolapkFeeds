@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,8 +16,6 @@ import (
 func Handler(w http.ResponseWriter, r *http.Request) {
 	authToken := r.Header.Get("X-Internal-Auth")
 	expectedToken := os.Getenv("INTERNAL_AUTH_TOKEN")
-
-	fmt.Print(expectedToken)
 
 	if expectedToken != "" && authToken != expectedToken {
 		log.Printf("Unauthorized access attempt from %s", r.RemoteAddr)
