@@ -122,10 +122,14 @@ const generateOgDescription = (message) => {
 const renderOgTags = (feed, proxyImage) => {
     if (!feed) return null;
     
+    const title = feed.feedType === 'feedArticle' ? feed.message_title : feed.title;
+    const description = generateOgDescription(feed.message);
+    
     return (
         <>
-            <meta property="og:title" content={feed.feedType === 'feedArticle' ? feed.message_title : feed.title} />
-            <meta property="og:description" content={generateOgDescription(feed.message)} />
+            <meta property="og:title" content={title} />
+            <meta property="og:description" content={description} />
+            <meta property="og:site_name" content="Coolapk1s" />
             <meta name="twitter:card" content="summary_large_image" />
             {feed.picArr && feed.picArr.length > 0 && (
                 <>
@@ -137,13 +141,27 @@ const renderOgTags = (feed, proxyImage) => {
     );
 };
 
-const FeedPage = ({ feed, error, isTelegram, formattedDate: serverFormattedDate }) => {
+const renderTelegramInstantViewTags = (feed) => {
+    if (!feed) return null;
+    
+    const publishedTime = new Date(feed.dateline * 1000).toISOString();
+    
+    return (
+        <>
+            <meta property="al:android:app_name" content="Medium" />
+            <meta property="article:published_time" content={publishedTime} />
+            <meta name="author" content={feed.username} />
+        </>
+    );
+};
+
+const FeedPage = ({ feed, error, isTelegram }) => {
     const router = useRouter();
     const { id } = router.query;
     const [isBarVisible, setIsBarVisible] = useState(true);
     const [selectedImage, setSelectedImage] = useState(null);
     const [isPC, setIsPC] = useState(false);
-    const [formattedDate, setFormattedDate] = useState(serverFormattedDate || '');
+    const [formattedDate, setFormattedDate] = useState('');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
     
     // Function to detect if content contains Markdown syntax
@@ -311,8 +329,8 @@ const FeedPage = ({ feed, error, isTelegram, formattedDate: serverFormattedDate 
         window.addEventListener('resize', checkIsPC);
 
         if (feed) {
-            // 只在客户端且没有服务端日期时才格式化（使用客户端本地时区）
-            if (!serverFormattedDate) {
+            // 标准版需要格式化日期（使用客户端本地时区）
+            if (!isTelegram) {
                 setFormattedDate(new Date(feed.dateline * 1000).toLocaleString());
             }
             
@@ -498,23 +516,31 @@ const FeedPage = ({ feed, error, isTelegram, formattedDate: serverFormattedDate 
                 <Head>
                     <title>{feed.feedType === 'feedArticle' ? feed.message_title : feed.title}</title>
                     {renderOgTags(feed, proxyImage)}
+                    {renderTelegramInstantViewTags(feed)}
                 </Head>
+                <header style={styles.telegramPageHeader}></header>
                 <article>
-                    <header style={styles.telegramHeader}>
-                        <h1 style={styles.telegramTitle}>{feed.message_title || feed.title}</h1>
-                        <div style={styles.telegramSourceLink}>
+                    {feed.message_cover && (
+                        <section className="is-imageBackgrounded" style={styles.telegramCoverSection}>
+                            <figure style={styles.telegramCoverFigure}>
+                                <img src={proxyImage(feed.message_cover)} alt="cover" style={styles.telegramCoverImage} />
+                            </figure>
+                        </section>
+                    )}
+                    <h1 style={styles.telegramTitle}>{feed.message_title || feed.title}</h1>
+                    <section style={styles.telegramContentSection}>
+                        <p style={styles.telegramSourceLink}>
                             <a href={`https://www.coolapk1s.com/feed/${id}`} rel="noopener noreferrer" style={styles.telegramLink}>
                                 查看原文
                             </a>
-                        </div>
-                        <div style={styles.telegramMeta}>
-                            <span style={styles.telegramAuthor}>{feed.username}</span>
-                            <span style={styles.telegramSeparator}>·</span>
-                            <time style={styles.telegramDate}>{formattedDate}</time>
-                        </div>
-                    </header>
-                    <div style={styles.telegramContent}>{renderFeedContent()}</div>
+                        </p>
+                        <p></p>
+                        {renderFeedContent()}
+                    </section>
                 </article>
+                <footer style={styles.telegramFooter}>
+                    <p>From Coolapk1s</p>
+                </footer>
             </div>
         );
     }
@@ -606,20 +632,11 @@ export async function getServerSideProps(context) {
             );
         }
 
-        // 在服务端预先格式化日期，避免hydration不匹配
-        let formattedDate = '';
-        if (isTelegram && data.data && data.data.dateline) {
-            formattedDate = new Date(data.data.dateline * 1000).toLocaleString('zh-CN', {
-                timeZone: 'Asia/Shanghai'
-            });
-        }
-
         return {
             props: {
                 feed: data.data || null,
                 error: null,
                 isTelegram,
-                formattedDate,
             },
         };
     } catch (error) {
@@ -628,7 +645,6 @@ export async function getServerSideProps(context) {
                 feed: null,
                 error: error.message,
                 isTelegram,
-                formattedDate: '',
             },
         };
     }
@@ -828,48 +844,52 @@ const styles = {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         maxWidth: '680px',
         margin: '0 auto',
-        padding: '20px',
+        padding: '0',
         backgroundColor: '#fff',
         color: '#222',
         lineHeight: '1.6',
     },
-    telegramHeader: {
-        marginBottom: '30px',
-        paddingBottom: '20px',
-        borderBottom: '1px solid #e5e5e5',
+    telegramPageHeader: {
+        display: 'none',
+    },
+    telegramCoverSection: {
+        margin: '0',
+        padding: '0',
+        width: '100%',
+    },
+    telegramCoverFigure: {
+        margin: '0',
+        padding: '0',
+        width: '100%',
+    },
+    telegramCoverImage: {
+        width: '100%',
+        height: 'auto',
+        display: 'block',
     },
     telegramTitle: {
         fontSize: '2em',
         fontWeight: 'bold',
-        marginBottom: '15px',
+        margin: '30px 20px 15px',
         lineHeight: '1.3',
         color: '#000',
     },
-    telegramSourceLink: {
-        marginTop: '12px',
-        marginBottom: '15px',
-    },
-    telegramMeta: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        fontSize: '0.85em',
-        color: '#707579',
-    },
-    telegramAuthor: {
-        fontWeight: '500',
-        color: '#707579',
-    },
-    telegramSeparator: {
-        color: '#707579',
-    },
-    telegramDate: {
-        color: '#707579',
-    },
-    telegramContent: {
+    telegramContentSection: {
         fontSize: '1.05em',
         lineHeight: '1.7',
+        padding: '0 20px',
         marginBottom: '30px',
+    },
+    telegramSourceLink: {
+        margin: '0',
+        fontSize: '0.95em',
+    },
+    telegramFooter: {
+        padding: '20px',
+        borderTop: '1px solid #e5e5e5',
+        textAlign: 'center',
+        color: '#999',
+        fontSize: '0.9em',
     },
     telegramLink: {
         color: '#2481cc',
