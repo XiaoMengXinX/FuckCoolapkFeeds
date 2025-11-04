@@ -241,3 +241,24 @@ a:active {
 .markdown-content ol ul {
   padding-left: 1.5em;
 }
+
+/* Coolapk Emoji styles */
+.coolapk-emoji {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  margin: 0 2px;
+  object-fit: contain;
+}
+
+/* Ensure emojis work well in markdown content */
+.markdown-content .coolapk-emoji {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  margin: 0 2px;
+  box-shadow: none;
+  border-radius: 0;
+}

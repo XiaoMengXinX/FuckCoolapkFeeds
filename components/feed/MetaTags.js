@@ -1,11 +1,5 @@
 import Head from 'next/head';
-
-const proxyImage = (url) => {
-    if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
-        return `https://image.coolapk1s.com/?url=${encodeURIComponent(url)}`;
-    }
-    return url;
-};
+import { proxyImage } from '../../lib/imageProxy';
 
 const generateOgDescription = (message) => {
     if (!message) return '';

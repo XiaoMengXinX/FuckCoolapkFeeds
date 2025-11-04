@@ -1,18 +1,12 @@
 import { useEffect, useState } from 'react';
 import { processHtmlLinks } from '../../lib/linkProcessor';
 import { getMarkdownRenderer, detectMarkdown } from '../../lib/markdownProcessor';
+import { proxyImage } from '../../lib/imageProxy';
 
 import MetaTags from '../../components/feed/MetaTags';
 import FeedContent from '../../components/feed/FeedContent';
 import { fetchFeedData } from '../../lib/feedLoader';
 import { styles } from '../../styles/feedStyles';
-
-const proxyImage = (url) => {
-    if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
-        return `https://image.coolapk1s.com/?url=${encodeURIComponent(url)}`;
-    }
-    return url;
-};
 
 const FeedPage = ({ feed, error, id }) => {
     const [isBarVisible, setIsBarVisible] = useState(true);

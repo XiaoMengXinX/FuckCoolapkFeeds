@@ -1,13 +1,7 @@
 import { LazyImage } from './LazyImage';
 import { ImageCarousel } from './ImageCarousel';
 import { decodeEntities } from '../../lib/markdownProcessor';
-
-const proxyImage = (url) => {
-    if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
-        return `https://image.coolapk1s.com/?url=${encodeURIComponent(url)}`;
-    }
-    return url;
-};
+import { proxyImage } from '../../lib/imageProxy';
 
 const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLinks, styles, isMarkdownEnabled }) => {
     if (!feed) {

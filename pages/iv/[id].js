@@ -4,13 +4,7 @@ import { styles } from '../../styles/feedStyles';
 import Head from 'next/head';
 import { processHtmlLinks } from '../../lib/linkProcessor';
 import { getMarkdownRenderer, detectMarkdown, decodeEntities } from '../../lib/markdownProcessor';
-
-const proxyImage = (url) => {
-    if (url && (url.includes('image.coolapk.com') || url.includes('avatar.coolapk.com'))) {
-        return `https://image.coolapk1s.com/?url=${encodeURIComponent(url)}`;
-    }
-    return url;
-};
+import { proxyImage } from '../../lib/imageProxy';
 
 
 // 获取markdown渲染器实例
@@ -35,12 +29,12 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                                 <div
                                     key={index}
                                     className="markdown-content"
-                                    dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(formattedMessage).replace(/\n/g, '  \n')) }}
+                                    dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(formattedMessage, false).replace(/\n/g, '  \n')) }}
                                 />
                             );
                         } else {
                             const htmlMessage = formattedMessage.replace(/\n/g, '<br />');
-                            return <div key={index} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage) }} />;
+                            return <div key={index} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage, false) }} />;
                         }
                     } else if (part.type === 'image') {
                         return (
@@ -53,7 +47,7 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                     return null;
                 });
             } catch (e) {
-                const processedMessage = processHtmlLinks(feed.message.replace(/\\n/g, '\n').replace(/\n/g, '<br />'));
+                const processedMessage = processHtmlLinks(feed.message.replace(/\\n/g, '\n').replace(/\n/g, '<br />'), false);
                 messageContent = <div style={{ whiteSpace: 'pre-wrap' }} dangerouslySetInnerHTML={{ __html: processedMessage }} />;
             }
         } else {
@@ -62,7 +56,7 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                     <>
                         <div
                             className="markdown-content"
-                            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(feed.message).replace(/\n/g, '  \n')) }}
+                            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(feed.message, false).replace(/\n/g, '  \n')) }}
                         />
                         {feed.picArr && feed.picArr.map((img, index) => (
                             <div key={index} style={styles.imageContainer}>
@@ -72,7 +66,7 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                     </>
                 );
             } else {
-                const processedMessage = processHtmlLinks(feed.message.replace(/\n/g, '<br />'));
+                const processedMessage = processHtmlLinks(feed.message.replace(/\n/g, '<br />'), false);
                 messageContent = (
                     <>
                         <div dangerouslySetInnerHTML={{ __html: processedMessage }} />
