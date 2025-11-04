@@ -3,6 +3,25 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+  }
+}
+
+body.dark-mode {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+body.light-mode {
+  background-color: #f9f9f9;
+  color: #333;
 }
 
 .switch {
@@ -83,6 +102,19 @@ input:checked + .slider:before {
   background-color: #f6f8fa;
   padding: 16px;
   border-radius: 6px;
+  color: #24292e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-content pre {
+    background-color: #2d2d2d;
+    color: #e6edf3;
+  }
+}
+
+body.dark-mode .markdown-content pre {
+  background-color: #2d2d2d;
+  color: #e6edf3;
 }
 
 .markdown-content code {
@@ -93,6 +125,19 @@ input:checked + .slider:before {
   font-size: 85%;
   background-color: rgba(27,31,35,.05);
   border-radius: 3px;
+  color: #24292e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-content code {
+    background-color: rgba(255,255,255,.1);
+    color: #e6edf3;
+  }
+}
+
+body.dark-mode .markdown-content code {
+  background-color: rgba(255,255,255,.1);
+  color: #e6edf3;
 }
 
 .markdown-content pre code {
@@ -102,9 +147,29 @@ input:checked + .slider:before {
   padding: 0;
   margin: 0;
   font-size: inherit;
-  background-color: transparent;
+  background-color: transparent !important;
   border-radius: 0;
+  color: inherit;
 }
+
+/* Highlight.js code block styles */
+.markdown-content pre code.hljs {
+  background-color: transparent !important;
+  padding: 0;
+  display: block;
+  overflow-x: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-content pre code.hljs {
+    background-color: transparent !important;
+  }
+}
+
+body.dark-mode .markdown-content pre code.hljs {
+  background-color: transparent !important;
+}
+
 
 /* Link styles - prevent overflow */
 .markdown-content a {
@@ -116,6 +181,16 @@ input:checked + .slider:before {
 
 .markdown-content a:hover {
   text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-content a {
+    color: #58a6ff;
+  }
+}
+
+body.dark-mode .markdown-content a {
+  color: #58a6ff;
 }
 
 /* Non-markdown link styles */
@@ -138,6 +213,40 @@ a:visited {
 
 a:active {
   color: #d73a49;
+}
+
+@media (prefers-color-scheme: dark) {
+  a {
+    color: #58a6ff;
+  }
+  
+  a:hover {
+    color: #79c0ff;
+  }
+  
+  a:visited {
+    color: #bc8cff;
+  }
+  
+  a:active {
+    color: #ff7b72;
+  }
+}
+
+body.dark-mode a {
+  color: #58a6ff;
+}
+
+body.dark-mode a:hover {
+  color: #79c0ff;
+}
+
+body.dark-mode a:visited {
+  color: #bc8cff;
+}
+
+body.dark-mode a:active {
+  color: #ff7b72;
 }
 
 .markdown-content p {
@@ -175,6 +284,42 @@ a:active {
 
 .markdown-content table tr:hover {
   background-color: #f0f0f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-content table thead {
+    background-color: #2d2d2d;
+  }
+  
+  .markdown-content table th,
+  .markdown-content table td {
+    border: 1px solid #444;
+  }
+  
+  .markdown-content table tr:nth-child(even) {
+    background-color: #2d2d2d;
+  }
+  
+  .markdown-content table tr:hover {
+    background-color: #3d3d3d;
+  }
+}
+
+body.dark-mode .markdown-content table thead {
+  background-color: #2d2d2d;
+}
+
+body.dark-mode .markdown-content table th,
+body.dark-mode .markdown-content table td {
+  border: 1px solid #444;
+}
+
+body.dark-mode .markdown-content table tr:nth-child(even) {
+  background-color: #2d2d2d;
+}
+
+body.dark-mode .markdown-content table tr:hover {
+  background-color: #3d3d3d;
 }
 
 /* Responsive table */

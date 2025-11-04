@@ -3,7 +3,7 @@ import { ImageCarousel } from './ImageCarousel';
 import { decodeEntities } from '../../lib/markdownProcessor';
 import { proxyImage } from '../../lib/imageProxy';
 
-const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLinks, styles, isMarkdownEnabled }) => {
+const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLinks, styles, themeStyles = {}, isMarkdownEnabled }) => {
     if (!feed) {
         return <div style={styles.centered}>No feed data found.</div>;
     }
@@ -34,7 +34,7 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                         return (
                             <div key={index} style={styles.imageContainer}>
                                 <img src={imageUrl} alt={part.description || `feed-image-${index}`} style={styles.image} />
-                                {part.description && <div style={styles.imageDescription}>{part.description}</div>}
+                                {part.description && <div style={{...styles.imageDescription, ...themeStyles.imageDescription}}>{part.description}</div>}
                             </div>
                         );
                     }
@@ -46,7 +46,7 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                                 style={{ ...(isPC() ? { ...styles.image, maxWidth: '80%' } : styles.image), cursor: 'pointer' }}
                                 onClick={() => onImageClick(imageUrl)}
                             />
-                            {part.description && <div style={styles.imageDescription}>{part.description}</div>}
+                            {part.description && <div style={{...styles.imageDescription, ...themeStyles.imageDescription}}>{part.description}</div>}
                         </div>
                     );
                 }

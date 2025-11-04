@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
+import { useTheme } from '../../lib/theme';
 
 export const LazyImage = ({ src, alt, style, onClick }) => {
+    const theme = useTheme();
     const [imageSrc, setImageSrc] = useState(null);
     const [loaded, setLoaded] = useState(false);
     const imageRef = useRef(null);
@@ -47,8 +49,8 @@ export const LazyImage = ({ src, alt, style, onClick }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#f0f0f0',
-                    color: '#aaa',
+                    backgroundColor: theme === 'dark' ? '#2d2d2d' : '#f0f0f0',
+                    color: theme === 'dark' ? '#666' : '#aaa',
                 }}>
                     Loading...
                 </div>
