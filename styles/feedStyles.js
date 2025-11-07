@@ -111,16 +111,22 @@ export const styles = {
     imageContainer: {
         margin: '20px 0',
         textAlign: 'center',
+        display: 'block',
     },
     image: {
         maxWidth: '100%',
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+        display: 'block',
+        margin: '0 auto',
     },
     imageDescription: {
         marginTop: '8px',
         color: '#666',
         fontSize: '0.9em',
+        textAlign: 'center',
+        display: 'block',
+        fontStyle: 'italic',
     },
     floatingBarContainer: {
         position: 'fixed',

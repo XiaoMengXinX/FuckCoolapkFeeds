@@ -38,10 +38,10 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                         }
                     } else if (part.type === 'image') {
                         return (
-                            <div key={index} style={styles.imageContainer}>
+                            <figure key={index} style={styles.imageContainer}>
                                 <img src={proxyImage(part.url)} alt={part.description || `feed-image-${index}`} style={styles.image} />
-                                {part.description && <div style={styles.imageDescription}>{part.description}</div>}
-                            </div>
+                                {part.description && <figcaption style={styles.imageDescription}>{part.description}</figcaption>}
+                            </figure>
                         );
                     }
                     return null;
@@ -59,9 +59,9 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                             dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(feed.message, false).replace(/\n/g, '  \n')) }}
                         />
                         {feed.picArr && feed.picArr.map((img, index) => (
-                            <div key={index} style={styles.imageContainer}>
+                            <figure key={index} style={styles.imageContainer}>
                                 <img src={proxyImage(img)} alt={`image-${index}`} style={styles.image} />
-                            </div>
+                            </figure>
                         ))}
                     </>
                 );
@@ -71,9 +71,9 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                     <>
                         <div dangerouslySetInnerHTML={{ __html: processedMessage }} />
                         {feed.picArr && feed.picArr.map((img, index) => (
-                            <div key={index} style={styles.imageContainer}>
+                            <figure key={index} style={styles.imageContainer}>
                                 <img src={proxyImage(img)} alt={`image-${index}`} style={styles.image} />
-                            </div>
+                            </figure>
                         ))}
                     </>
                 );
