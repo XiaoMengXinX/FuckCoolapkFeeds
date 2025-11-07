@@ -126,7 +126,6 @@ export const styles = {
         fontSize: '0.9em',
         textAlign: 'center',
         display: 'block',
-        fontStyle: 'italic',
     },
     floatingBarContainer: {
         position: 'fixed',
@@ -198,62 +197,5 @@ export const styles = {
     switchLabel: {
         fontSize: '1em',
         marginRight: '10px',
-    },
-    telegramContainer: {
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-        maxWidth: '680px',
-        margin: '0 auto',
-        padding: '0',
-        backgroundColor: '#fff',
-        color: '#222',
-        lineHeight: '1.6',
-    },
-    telegramPageHeader: {
-        display: 'none',
-    },
-    telegramCoverSection: {
-        margin: '0',
-        padding: '0',
-        width: '100%',
-    },
-    telegramCoverFigure: {
-        margin: '0',
-        padding: '0',
-        width: '100%',
-    },
-    telegramCoverImage: {
-        width: '100%',
-        height: 'auto',
-        display: 'block',
-    },
-    telegramTitle: {
-        fontSize: '2em',
-        fontWeight: 'bold',
-        margin: '30px 20px 15px',
-        lineHeight: '1.3',
-        color: '#000',
-    },
-    telegramContentSection: {
-        fontSize: '1.05em',
-        lineHeight: '1.7',
-        padding: '0 20px',
-        marginBottom: '30px',
-    },
-    telegramSourceLink: {
-        margin: '0',
-        fontSize: '0.95em',
-    },
-    telegramFooter: {
-        padding: '20px',
-        borderTop: '1px solid #e5e5e5',
-        textAlign: 'center',
-        color: '#999',
-        fontSize: '0.9em',
-    },
-    telegramLink: {
-        color: '#2481cc',
-        textDecoration: 'none',
-        fontSize: '0.9em',
-        fontWeight: '500',
     },
 };
