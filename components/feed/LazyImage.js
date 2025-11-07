@@ -1,8 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { useTheme } from '../../lib/theme';
 
 export const LazyImage = ({ src, alt, style, onClick }) => {
-    const theme = useTheme();
     const [imageSrc, setImageSrc] = useState(null);
     const [loaded, setLoaded] = useState(false);
     const imageRef = useRef(null);
@@ -40,18 +38,7 @@ export const LazyImage = ({ src, alt, style, onClick }) => {
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {!loaded && imageSrc && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: theme === 'dark' ? '#2d2d2d' : '#f0f0f0',
-                    color: theme === 'dark' ? '#666' : '#aaa',
-                }}>
+                <div className="lazy-image-loading">
                     Loading...
                 </div>
             )}

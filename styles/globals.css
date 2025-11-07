@@ -1,3 +1,9 @@
+/* 导入代码高亮主题 - 亮色模式 */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css') (prefers-color-scheme: light);
+
+/* 导入代码高亮主题 - 暗色模式 */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css') (prefers-color-scheme: dark);
+
 body {
   background-color: #f9f9f9;
   margin: 0;
@@ -406,4 +412,58 @@ body.dark-mode .markdown-content table tr:hover {
   margin: 0 2px;
   box-shadow: none;
   border-radius: 0;
+}
+
+/* Feed page dark mode overrides for inline styles */
+@media (prefers-color-scheme: dark) {
+  /* Override container text color */
+  div[style*="color: rgb(51, 51, 51)"],
+  div[style*="color:#333"] {
+    color: #e0e0e0 !important;
+  }
+  
+  /* Override header border */
+  div[style*="border-bottom: 1px solid rgb(238, 238, 238)"],
+  div[style*="border-bottom:1px solid #eee"] {
+    border-bottom: 1px solid #444 !important;
+  }
+  
+  /* Override dateline color */
+  div[style*="color: rgb(136, 136, 136)"],
+  div[style*="color:#888"] {
+    color: #999 !important;
+  }
+  
+  /* Override image description color */
+  div[style*="color: rgb(102, 102, 102)"],
+  div[style*="color:#666"] {
+    color: #999 !important;
+  }
+  
+  /* Override switch label color */
+  span[style*="color: rgb(51, 51, 51)"],
+  span[style*="color:#333"] {
+    color: #e0e0e0 !important;
+  }
+}
+
+/* Lazy image loading placeholder */
+.lazy-image-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  color: #aaa;
+}
+
+@media (prefers-color-scheme: dark) {
+  .lazy-image-loading {
+    background-color: #2d2d2d;
+    color: #666;
+  }
 }

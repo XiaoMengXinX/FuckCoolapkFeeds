@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { processHtmlLinks } from '../../lib/linkProcessor';
 import { getMarkdownRenderer, detectMarkdown } from '../../lib/markdownProcessor';
 import { proxyImage } from '../../lib/imageProxy';
-import {getThemeStyles, useTheme} from '../../lib/theme';
 
 import MetaTags from '../../components/feed/MetaTags';
 import FeedContent from '../../components/feed/FeedContent';
@@ -15,8 +14,6 @@ const FeedPage = ({ feed, error, id }) => {
     const [isPC, setIsPC] = useState(false);
     const [formattedDate, setFormattedDate] = useState('');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
-    const theme = useTheme();
-    const themeStyles = getThemeStyles(theme);
     const md = getMarkdownRenderer();
 
     useEffect(() => {
@@ -37,19 +34,19 @@ const FeedPage = ({ feed, error, id }) => {
     if (error) return <div style={styles.centered}>Error: {error}</div>;
 
     return (
-        <div style={{...styles.container, ...themeStyles.container}}>
+        <div style={styles.container}>
             <MetaTags feed={feed} isTelegram={false} />
             {feed && (
-                <div style={{...styles.header, ...themeStyles.header}}>
+                <div style={styles.header}>
                     <h1 style={styles.title}>{feed.message_title || feed.title}</h1>
                     <div style={styles.userInfo}>
                         <img src={proxyImage(feed.userAvatar)} alt={feed.username} style={styles.avatar} />
                         <div>
                             <strong style={styles.username}>{feed.username}</strong>
-                            <div style={{...styles.dateline, ...themeStyles.dateline}}>{formattedDate}</div>
+                            <div style={styles.dateline}>{formattedDate}</div>
                         </div>
                         <div style={styles.controlsContainer}>
-                            <span style={{...styles.switchLabel, ...themeStyles.switchLabel}}>Markdown</span>
+                            <span style={styles.switchLabel}>Markdown</span>
                             <label className="switch">
                                 <input type="checkbox" checked={isMarkdownEnabled} onChange={() => setIsMarkdownEnabled(!isMarkdownEnabled)} />
                                 <span className="slider"></span>
@@ -67,7 +64,6 @@ const FeedPage = ({ feed, error, id }) => {
                     md={md}
                     processHtmlLinks={processHtmlLinks}
                     styles={styles}
-                    themeStyles={themeStyles}
                     isMarkdownEnabled={isMarkdownEnabled}
                 />
             </div>
