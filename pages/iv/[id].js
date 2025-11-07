@@ -106,6 +106,16 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
     return (
         <>
             <Head>
+                <link
+                    rel="stylesheet"
+                    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css"
+                    media="(prefers-color-scheme: light)"
+                />
+                <link
+                    rel="stylesheet"
+                    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+                    media="(prefers-color-scheme: dark)"
+                />
                 <style dangerouslySetInnerHTML={{ __html: `
                     .iv-container {
                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -115,6 +125,12 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                         background-color: #fff;
                         color: #222;
                         line-height: 1.6;
+                    }
+                    @media (prefers-color-scheme: dark) {
+                        .iv-container {
+                            background-color: #1a1a1a;
+                            color: #e0e0e0;
+                        }
                     }
                     .iv-centered {
                         display: flex;
@@ -148,6 +164,11 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                         line-height: 1.3;
                         color: #000;
                     }
+                    @media (prefers-color-scheme: dark) {
+                        .iv-title {
+                            color: #fff;
+                        }
+                    }
                     .iv-content-section {
                         font-size: 1.05em;
                         line-height: 1.7;
@@ -165,11 +186,22 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                         color: #999;
                         font-size: 0.9em;
                     }
+                    @media (prefers-color-scheme: dark) {
+                        .iv-footer {
+                            border-top: 1px solid #444;
+                            color: #888;
+                        }
+                    }
                     .iv-link {
                         color: #2481cc;
                         text-decoration: none;
                         font-size: 0.9em;
                         font-weight: 500;
+                    }
+                    @media (prefers-color-scheme: dark) {
+                        .iv-link {
+                            color: #4a9eff;
+                        }
                     }
                     .iv-image-container {
                         margin: 20px 0;
@@ -189,6 +221,11 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                         font-size: 0.9em;
                         text-align: center;
                         display: block;
+                    }
+                    @media (prefers-color-scheme: dark) {
+                        .iv-image-description {
+                            color: #999;
+                        }
                     }
                     .iv-pre-wrap {
                         white-space: pre-wrap;
