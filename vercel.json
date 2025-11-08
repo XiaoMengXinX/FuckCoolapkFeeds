@@ -24,6 +24,17 @@
       "destination": "/iv/:id"
     },
     {
+      "source": "/(feed|picture)/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "Via",
+          "value": ".*archive\\.org.*"
+        }
+      ],
+      "destination": "/iv/:id"
+    },
+    {
       "source": "/",
       "destination": "https://github.com/XiaoMengXinX/FuckCoolapkFeeds",
       "permanent": false
