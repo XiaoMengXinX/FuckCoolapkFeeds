@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname, search } = request.nextUrl;
 
   const pathMatch = pathname.match(/^\/(feed|picture|iv)\/([^/]+)$/);
