@@ -12,6 +12,7 @@ const FeedPage = ({ feed, error, id }) => {
     const [isBarVisible, setIsBarVisible] = useState(true);
     const [selectedImage, setSelectedImage] = useState(null);
     const [isPC, setIsPC] = useState(false);
+    const [isAndroid, setIsAndroid] = useState(false);
     const [formattedDate, setFormattedDate] = useState('');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
     const md = getMarkdownRenderer();
@@ -21,7 +22,9 @@ const FeedPage = ({ feed, error, id }) => {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
         const checkIsPC = () => setIsPC(typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
+        const checkIsAndroid = () => setIsAndroid(typeof window !== "undefined" && /Android/i.test(navigator.userAgent));
         checkIsPC();
+        checkIsAndroid();
         window.addEventListener('resize', checkIsPC);
         if (feed) {
             setFormattedDate(new Date(feed.dateline * 1000).toLocaleString());
@@ -70,8 +73,16 @@ const FeedPage = ({ feed, error, id }) => {
             {isBarVisible && id && (
                 <div style={styles.floatingBarContainer}>
                     <div style={styles.floatingBar}>
-                        <a href={`https://www.coolapk.com/${feed && feed.feedType === 'picture' ? 'picture' : 'feed'}/${id}`} target="_blank" rel="noopener noreferrer" style={styles.originalLinkButton}>
-                            打开原链接
+                        <a
+                            href={isAndroid
+                                ? `intent://www.coolapk.com/feed/${id}#Intent;scheme=https;package=com.coolapk.market;end`
+                                : `https://www.coolapk.com/${feed && feed.feedType === 'picture' ? 'picture' : 'feed'}/${id}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={styles.originalLinkButton}
+                        >
+                            {isAndroid ? 'APP 内打开' : '打开原链接'}
                         </a>
                         <button onClick={() => setIsBarVisible(false)} style={styles.closeButton}>&times;</button>
                     </div>
