@@ -53,7 +53,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Cache-Control", "s-maxage=300, stale-while-revalidate=0")
+	w.Header().Set("Cache-Control", "s-maxage=600, stale-while-revalidate=0")
 
 	statusCode := feedDetail.StatusCode
 	if statusCode == 0 {
