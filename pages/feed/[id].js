@@ -75,7 +75,7 @@ const FeedPage = ({ feed, error, id }) => {
                     <div style={styles.floatingBar}>
                         <a
                             href={isAndroid
-                                ? `intent://www.coolapk.com/feed/${id}#Intent;scheme=https;package=com.coolapk.market;end`
+                                ? `intent://www.coolapk.com/feed/${id}#Intent;scheme=coolmarket;package=com.coolapk.market;end`
                                 : `https://www.coolapk.com/${feed && feed.feedType === 'picture' ? 'picture' : 'feed'}/${id}`
                             }
                             target="_blank"
