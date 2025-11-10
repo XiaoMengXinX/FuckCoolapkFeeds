@@ -103,10 +103,17 @@ export const styles = {
     content: {
         lineHeight: '1.8',
         fontSize: '1.1em',
+        maxWidth: '100%',
+        overflowWrap: 'break-word',
+        wordWrap: 'break-word',
+        wordBreak: 'break-word',
     },
     textBlock: {
         marginBottom: '20px',
         wordWrap: 'break-word',
+        maxWidth: '100%',
+        overflowWrap: 'break-word',
+        wordBreak: 'break-word',
     },
     imageContainer: {
         margin: '20px 0',
