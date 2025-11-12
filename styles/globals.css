@@ -10,6 +10,16 @@
   100% { transform: rotate(360deg); }
 }
 
+/* 隐藏滚动条 */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
 body {
   background-color: #f9f9f9;
   margin: 0;

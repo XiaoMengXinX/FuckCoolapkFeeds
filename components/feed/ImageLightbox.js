@@ -21,20 +21,30 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         };
         checkIsMobile();
         
-        // 禁止背景页面滚动
-        const originalOverflow = document.body.style.overflow;
-        const originalPosition = document.body.style.position;
-        const originalWidth = document.body.style.width;
+        // 保存当前滚动位置
+        const scrollY = window.scrollY;
         
-        document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
+        // 添加样式标签来处理滚动锁定
+        const style = document.createElement('style');
+        style.id = 'lightbox-scroll-lock';
+        style.textContent = `
+            body {
+                overflow: hidden !important;
+                position: fixed !important;
+                top: -${scrollY}px !important;
+                left: 0 !important;
+                right: 0 !important;
+            }
+        `;
+        document.head.appendChild(style);
         
         return () => {
-            // 恢复背景页面滚动
-            document.body.style.overflow = originalOverflow;
-            document.body.style.position = originalPosition;
-            document.body.style.width = originalWidth;
+            // 移除样式标签并恢复滚动位置
+            const styleElement = document.getElementById('lightbox-scroll-lock');
+            if (styleElement) {
+                styleElement.remove();
+            }
+            window.scrollTo(0, scrollY);
         };
     }, []);
 
