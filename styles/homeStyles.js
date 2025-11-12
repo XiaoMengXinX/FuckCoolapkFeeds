@@ -39,7 +39,7 @@ export const styles = `
     width: 100%;
     display: flex;
     gap: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     align-items: stretch;
   }
 
@@ -65,11 +65,6 @@ export const styles = `
     gap: 0.75rem;
   }
 
-  .button-group.mobile {
-    width: 100%;
-    margin-top: 0.5rem;
-  }
-
   .button {
     padding: 1rem 2rem;
     font-size: 1rem;
@@ -82,9 +77,6 @@ export const styles = `
     white-space: nowrap;
   }
 
-  .button-group.mobile .button {
-    flex: 1;
-  }
 
   .copy-button {
     background-color: #6c757d;
@@ -207,6 +199,16 @@ export const styles = `
 
     .input-section {
       flex-direction: column;
+      margin-bottom: 0;
+    }
+
+    .button-group {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+    .button-group .button {
+      flex: 1;
     }
 
     .input {

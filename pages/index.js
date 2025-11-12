@@ -6,17 +6,10 @@ export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [outputLink, setOutputLink] = useState('');
   const [host, setHost] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setHost(window.location.origin);
-      const checkMobile = () => {
-        setIsMobile(window.innerWidth <= 768);
-      };
-      checkMobile();
-      window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
     }
   }, []);
 
@@ -122,20 +115,7 @@ export default function Home() {
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="输入酷安分享链接或动态ID"
           />
-          {!isMobile && (
-            <div className="button-group">
-              <button onClick={handleCopy} className="button copy-button" disabled={!outputLink}>
-                复制链接
-              </button>
-              <button onClick={handleRedirect} className="button redirect-button" disabled={!outputLink}>
-                跳转
-              </button>
-            </div>
-          )}
-        </div>
-
-        {isMobile && (
-          <div className="button-group mobile">
+          <div className="button-group">
             <button onClick={handleCopy} className="button copy-button" disabled={!outputLink}>
               复制链接
             </button>
@@ -143,7 +123,7 @@ export default function Home() {
               跳转
             </button>
           </div>
-        )}
+        </div>
 
         <div className={`arrow-down ${outputLink ? 'visible' : ''}`}>↓</div>
         <div className={`output-container ${outputLink ? 'visible' : ''}`}>
