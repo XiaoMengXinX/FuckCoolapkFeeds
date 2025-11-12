@@ -13,7 +13,7 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
     const [isPC, setIsPC] = useState(false);
     const gridContainerRef = useRef(null);
     const [singleImageHeight, setSingleImageHeight] = useState('600px');
-    const hasCalculatedHeight = useRef(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     // 检测是否为 PC 端并计算最大高度
     useEffect(() => {
@@ -41,26 +41,35 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
     }, []);
 
     useEffect(() => {
-        if (images && images.length === 1 && gridContainerRef.current && !hasCalculatedHeight.current) {
-            const containerWidth = gridContainerRef.current.offsetWidth;
-            const defaultHeight = containerWidth * 4 / 3;
+        if (images && images.length === 1 && gridContainerRef.current) {
+            const calculateHeight = () => {
+                const containerWidth = gridContainerRef.current.offsetWidth;
+                // PC 端限制最大宽度为 500px，移动端使用容器宽度
+                const effectiveWidth = isPC ? Math.min(containerWidth, 500) : containerWidth;
+                const defaultHeight = effectiveWidth * 4 / 3;
 
-            const img = new Image();
-            img.src = images[0];
+                const img = new Image();
+                img.src = images[0];
 
-            img.onload = () => {
-                const imageAspectRatio = img.height / img.width;
-                const calculatedImageHeight = containerWidth * imageAspectRatio;
+                img.onload = () => {
+                    const imageAspectRatio = img.height / img.width;
+                    const calculatedImageHeight = effectiveWidth * imageAspectRatio;
 
-                if (calculatedImageHeight < defaultHeight) {
-                    setSingleImageHeight(`${calculatedImageHeight}px`);
-                } else {
-                    setSingleImageHeight(`${Math.min(defaultHeight, 600)}px`);
-                }
-                hasCalculatedHeight.current = true;
+                    if (calculatedImageHeight < defaultHeight) {
+                        setSingleImageHeight(`${calculatedImageHeight}px`);
+                    } else {
+                        setSingleImageHeight(`${Math.min(defaultHeight, 600)}px`);
+                    }
+                    setImageLoaded(true);
+                };
             };
+
+            setImageLoaded(false);
+            calculateHeight();
+            window.addEventListener('resize', calculateHeight);
+            return () => window.removeEventListener('resize', calculateHeight);
         }
-    }, [images]);
+    }, [images, isPC]);
 
     // 开始按顺序加载图片
     useEffect(() => {
@@ -154,14 +163,13 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
             const isLoaded = loadedImages.includes(0);
             const isLoading = currentLoadingIndex === 0 && !isLoaded;
             
-            // 如果图片还未加载，使用较小的容器高度
-            const containerHeight = isLoaded ? singleImageHeight : '100px';
-            
             const singleImageContainerStyle = {
                 position: 'relative',
-                margin: '20px 0',
-                maxHeight: containerHeight,
-                height: containerHeight,
+                margin: '20px auto',
+                minHeight: singleImageHeight,
+                maxHeight: singleImageHeight,
+                height: singleImageHeight,
+                maxWidth: isPC ? '500px' : '100%', // PC 端限制最大宽度
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -176,13 +184,9 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
                 objectFit: 'contain',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                margin: '0 auto',
                 display: 'block',
+                margin: '0 auto',
                 boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
             };
             
             if (!isLoaded && !isLoading) {
