@@ -117,118 +117,43 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                     media="(prefers-color-scheme: dark)"
                 />
                 <style dangerouslySetInnerHTML={{ __html: `
-                    .iv-container {
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                        max-width: 680px;
-                        margin: 0 auto;
-                        padding: 0;
-                        background-color: #fff;
-                        color: #222;
-                        line-height: 1.6;
-                    }
-                    @media (prefers-color-scheme: dark) {
-                        .iv-container {
-                            background-color: #1a1a1a;
-                            color: #e0e0e0;
-                        }
-                    }
-                    .iv-centered {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: calc(100vh - 200px);
-                        font-size: 1.2em;
-                    }
-                    .iv-page-header {
-                        display: none;
-                    }
-                    .iv-cover-section {
-                        margin: 0;
-                        padding: 0;
-                        width: 100%;
-                    }
-                    .iv-cover-figure {
-                        margin: 0;
-                        padding: 0;
-                        width: 100%;
-                    }
-                    .iv-cover-image {
-                        width: 100%;
-                        height: auto;
-                        display: block;
-                    }
-                    .iv-title {
-                        font-size: 2em;
-                        font-weight: bold;
-                        margin: 30px 20px 15px;
-                        line-height: 1.3;
-                        color: #000;
-                    }
-                    @media (prefers-color-scheme: dark) {
-                        .iv-title {
-                            color: #fff;
-                        }
-                    }
-                    .iv-content-section {
-                        font-size: 1.05em;
-                        line-height: 1.7;
-                        padding: 0 20px;
-                        margin-bottom: 30px;
-                    }
-                    .iv-source-link {
-                        margin: 0;
-                        font-size: 0.95em;
-                    }
-                    .iv-footer {
-                        padding: 20px;
-                        border-top: 1px solid #e5e5e5;
-                        text-align: center;
-                        color: #999;
-                        font-size: 0.9em;
-                    }
-                    @media (prefers-color-scheme: dark) {
-                        .iv-footer {
-                            border-top: 1px solid #444;
-                            color: #888;
-                        }
-                    }
-                    .iv-link {
-                        color: #2481cc;
-                        text-decoration: none;
-                        font-size: 0.9em;
-                        font-weight: 500;
-                    }
-                    @media (prefers-color-scheme: dark) {
-                        .iv-link {
-                            color: #4a9eff;
-                        }
-                    }
-                    .iv-image-container {
-                        margin: 20px 0;
-                        text-align: center;
-                        display: block;
-                    }
-                    .iv-image {
-                        max-width: 100%;
-                        border-radius: 8px;
-                        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-                        display: block;
-                        margin: 0 auto;
-                    }
-                    .iv-image-description {
-                        margin-top: 8px;
-                        color: #666;
-                        font-size: 0.9em;
-                        text-align: center;
-                        display: block;
-                    }
-                    @media (prefers-color-scheme: dark) {
-                        .iv-image-description {
-                            color: #999;
-                        }
-                    }
-                    .iv-pre-wrap {
-                        white-space: pre-wrap;
+                    body{margin:0;padding:0}
+                    .iv-container{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;max-width:680px;margin:0 auto;padding:0;background-color:#fff;color:#222;line-height:1.6}
+                    .iv-centered{display:flex;justify-content:center;align-items:center;height:calc(100vh - 200px);font-size:1.2em}
+                    .iv-page-header{display:none}
+                    .iv-cover-section,.iv-cover-figure{margin:0;padding:0;width:100%}
+                    .iv-cover-image{width:100%;height:auto;display:block}
+                    .iv-title{font-size:2em;font-weight:bold;margin:30px 20px 15px;line-height:1.3;color:#000}
+                    .iv-content-section{font-size:1.05em;line-height:1.7;padding:0 20px;margin-bottom:30px}
+                    .iv-source-link{margin:0;font-size:.95em}
+                    .iv-footer{padding:20px;border-top:1px solid #e5e5e5;text-align:center;color:#999;font-size:.9em}
+                    .iv-image-container{margin:20px 0;text-align:center}
+                    .iv-image{max-width:100%;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,.1);display:block;margin:0 auto}
+                    .iv-image-description{margin-top:8px;color:#666;font-size:.9em;text-align:center}
+                    .iv-pre-wrap{white-space:pre-wrap}
+                    a{word-break:break-all;overflow-wrap:break-word;color:#0366d6;text-decoration:none;transition:color .2s ease}
+                    a:hover{color:#0056b3;text-decoration:underline}
+                    a:visited{color:#6f42c1}
+                    a:active{color:#d73a49}
+                    .markdown-content{max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
+                    .markdown-content a{color:#0366d6}
+                    .markdown-content a:hover{text-decoration:underline}
+                    .markdown-content pre{white-space:pre;overflow-x:auto;background-color:#f6f8fa;padding:16px;border-radius:6px;color:#24292e;max-width:100%;box-sizing:border-box;margin:16px 0}
+                    .markdown-content code{white-space:normal;word-wrap:break-word;padding:.2em .4em;margin:0;font-size:85%;background-color:rgba(27,31,35,.05);border-radius:3px;color:#24292e}
+                    .markdown-content pre code{white-space:inherit;word-wrap:normal;padding:0;margin:0;font-size:inherit;background-color:transparent!important;border-radius:0;color:inherit}
+                    .markdown-content pre code.hljs{background-color:transparent!important;padding:0;display:block;overflow-x:auto}
+                    @media (prefers-color-scheme:dark){
+                        .iv-container{background-color:#1a1a1a;color:#e0e0e0}
+                        .iv-title{color:#fff}
+                        .iv-footer{border-top:1px solid #444;color:#888}
+                        .iv-image-description{color:#999}
+                        a{color:#58a6ff}
+                        a:hover{color:#79c0ff}
+                        a:visited{color:#bc8cff}
+                        a:active{color:#ff7b72}
+                        .markdown-content a{color:#58a6ff}
+                        .markdown-content pre{background-color:#2d2d2d;color:#e6edf3}
+                        .markdown-content code{background-color:rgba(255,255,255,.1);color:#e6edf3}
                     }
                 ` }} />
             </Head>

@@ -1,8 +1,14 @@
 /* 导入代码高亮主题 - 亮色模式 */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css') (prefers-color-scheme: light);
+@import url('./highlight/atom-one-light.min.css') (prefers-color-scheme: light);
 
 /* 导入代码高亮主题 - 暗色模式 */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css') (prefers-color-scheme: dark);
+@import url('./highlight/atom-one-dark.min.css') (prefers-color-scheme: dark);
+
+/* 图片加载动画 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 body {
   background-color: #f9f9f9;
@@ -482,6 +488,15 @@ body.dark-mode .markdown-content table tr:hover {
   justify-content: center;
   background-color: #f0f0f0;
   color: #aaa;
+}
+
+.lazy-image-spinner {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid #28a745;
+  animation: spin 1s linear infinite;
 }
 
 @media (prefers-color-scheme: dark) {

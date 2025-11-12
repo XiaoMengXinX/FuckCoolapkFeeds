@@ -5,12 +5,15 @@ import { proxyImage } from '../../lib/imageProxy';
 
 import MetaTags from '../../components/feed/MetaTags';
 import FeedContent from '../../components/feed/FeedContent';
+import { ImageLightbox } from '../../components/feed/ImageLightbox';
 import { fetchFeedData } from '../../lib/feedLoader';
 import { styles } from '../../styles/feedStyles';
 
 const FeedPage = ({ feed, error, id }) => {
     const [isBarVisible, setIsBarVisible] = useState(true);
-    const [selectedImage, setSelectedImage] = useState(null);
+    const [lightboxImages, setLightboxImages] = useState([]);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [showLightbox, setShowLightbox] = useState(false);
     const [isPC, setIsPC] = useState(false);
     const [isAndroid, setIsAndroid] = useState(false);
     const [formattedDate, setFormattedDate] = useState('');
@@ -33,6 +36,22 @@ const FeedPage = ({ feed, error, id }) => {
         }
         return () => window.removeEventListener('resize', checkIsPC);
     }, [feed]);
+
+    const handleImageClick = (images, index) => {
+        setLightboxImages(images);
+        setCurrentImageIndex(index);
+        setShowLightbox(true);
+    };
+
+    const handleImageChange = (index) => {
+        setCurrentImageIndex(index);
+    };
+
+    const handleCloseLightbox = () => {
+        setShowLightbox(false);
+        setLightboxImages([]);
+        setCurrentImageIndex(0);
+    };
 
     if (error) return <div style={styles.centered}>Error: {error}</div>;
 
@@ -63,7 +82,7 @@ const FeedPage = ({ feed, error, id }) => {
                     feed={feed}
                     isTelegram={false}
                     isPC={() => isPC}
-                    onImageClick={setSelectedImage}
+                    onImageClick={handleImageClick}
                     md={md}
                     processHtmlLinks={processHtmlLinks}
                     styles={styles}
@@ -88,10 +107,13 @@ const FeedPage = ({ feed, error, id }) => {
                     </div>
                 </div>
             )}
-            {selectedImage && (
-                <div style={styles.lightbox} onClick={() => setSelectedImage(null)}>
-                    <img src={selectedImage} alt="Enlarged view" style={styles.lightboxImage} />
-                </div>
+            {showLightbox && (
+                <ImageLightbox
+                    images={lightboxImages}
+                    currentIndex={currentImageIndex}
+                    onClose={handleCloseLightbox}
+                    onImageChange={handleImageChange}
+                />
             )}
         </div>
     );

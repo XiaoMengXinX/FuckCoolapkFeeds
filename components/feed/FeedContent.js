@@ -1,9 +1,9 @@
 import { LazyImage } from './LazyImage';
-import { ImageCarousel } from './ImageCarousel';
+import { ImageGrid } from './ImageGrid';
 import { decodeEntities } from '../../lib/markdownProcessor';
 import { proxyImage } from '../../lib/imageProxy';
 
-const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLinks, styles, isMarkdownEnabled }) => {
+const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLinks, styles, isMarkdownEnabled, imageUrls = [] }) => {
     if (!feed) {
         return <div style={styles.centered}>No feed data found.</div>;
     }
@@ -38,13 +38,19 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                             </div>
                         );
                     }
+                    const allImages = JSON.parse(feed.message_raw_output).filter(p => p.type === 'image');
+                    const imageIndex = allImages.findIndex(img => img.url === part.url);
+                    
                     return (
                         <div key={index} style={styles.imageContainer}>
                             <LazyImage
                                 src={imageUrl}
                                 alt={part.description || `feed-image-${index}`}
                                 style={{ ...(isPC() ? { ...styles.image, maxWidth: '80%' } : styles.image), cursor: 'pointer' }}
-                                onClick={() => onImageClick(imageUrl)}
+                                onClick={() => {
+                                    const processedImages = allImages.map(p => proxyImage(p.url));
+                                    onImageClick(processedImages, imageIndex);
+                                }}
                             />
                             {part.description && <div style={styles.imageDescription}>{part.description}</div>}
                         </div>
@@ -71,7 +77,7 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                 ) : (
                     <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage.replace(/\n/g, '<br />')) }} />
                 )}
-                {feed.picArr && feed.picArr.length > 0 && (
+{feed.picArr && feed.picArr.length > 0 && (
                     isTelegram ? (
                         <div>
                             {feed.picArr.map((img, index) => (
@@ -81,9 +87,9 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                             ))}
                         </div>
                     ) : (
-                        <ImageCarousel
+                        <ImageGrid
                             images={feed.picArr.map(proxyImage)}
-                            onImageClick={onImageClick}
+                            onImageClick={(images, currentIndex) => onImageClick(images, currentIndex)}
                         />
                     )
                 )}

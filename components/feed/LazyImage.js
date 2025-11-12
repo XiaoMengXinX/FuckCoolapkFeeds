@@ -39,7 +39,7 @@ export const LazyImage = ({ src, alt, style, onClick }) => {
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {!loaded && imageSrc && (
                 <div className="lazy-image-loading">
-                    Loading...
+                    <div className="lazy-image-spinner"></div>
                 </div>
             )}
             <img
