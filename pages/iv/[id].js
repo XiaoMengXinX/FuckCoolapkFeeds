@@ -106,18 +106,16 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
     return (
         <>
             <Head>
-                <link
-                    rel="stylesheet"
-                    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css"
-                    media="(prefers-color-scheme: light)"
-                />
-                <link
-                    rel="stylesheet"
-                    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
-                    media="(prefers-color-scheme: dark)"
-                />
                 <style dangerouslySetInnerHTML={{ __html: `
-                    body{margin:0;padding:0}
+                    /* Highlight.js Light Theme */
+                    @media (prefers-color-scheme: light) {
+                        pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#383a42;background:#fafafa}.hljs-comment,.hljs-quote{color:#a0a1a7;font-style:italic}.hljs-doctag,.hljs-formula,.hljs-keyword{color:#a626a4}.hljs-deletion,.hljs-name,.hljs-section,.hljs-selector-tag,.hljs-subst{color:#e45649}.hljs-literal{color:#0184bb}.hljs-addition,.hljs-attribute,.hljs-meta .hljs-string,.hljs-regexp,.hljs-string{color:#50a14f}.hljs-attr,.hljs-number,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-pseudo,.hljs-template-variable,.hljs-type,.hljs-variable{color:#986801}.hljs-bullet,.hljs-link,.hljs-meta,.hljs-selector-id,.hljs-symbol,.hljs-title{color:#4078f2}.hljs-built_in,.hljs-class .hljs-title,.hljs-title.class_{color:#c18401}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}.hljs-link{text-decoration:underline}
+                    }
+                    /* Highlight.js Dark Theme */
+                    @media (prefers-color-scheme: dark) {
+                        pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#abb2bf;background:#282c34}.hljs-comment,.hljs-quote{color:#5c6370;font-style:italic}.hljs-doctag,.hljs-formula,.hljs-keyword{color:#c678dd}.hljs-deletion,.hljs-name,.hljs-section,.hljs-selector-tag,.hljs-subst{color:#e06c75}.hljs-literal{color:#56b6c2}.hljs-addition,.hljs-attribute,.hljs-meta .hljs-string,.hljs-regexp,.hljs-string{color:#98c379}.hljs-attr,.hljs-number,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-pseudo,.hljs-template-variable,.hljs-type,.hljs-variable{color:#d19a66}.hljs-bullet,.hljs-link,.hljs-meta,.hljs-selector-id,.hljs-symbol,.hljs-title{color:#61aeee}.hljs-built_in,.hljs-class .hljs-title,.hljs-title.class_{color:#e6c07b}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}.hljs-link{text-decoration:underline}
+                    }
+                    body{margin:0;padding:0;background:#f9f9f9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;transition:background-color .3s ease,color .3s ease}
                     .iv-container{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;max-width:680px;margin:0 auto;padding:0;background-color:#fff;color:#222;line-height:1.6}
                     .iv-centered{display:flex;justify-content:center;align-items:center;height:calc(100vh - 200px);font-size:1.2em}
                     .iv-page-header{display:none}
@@ -136,6 +134,12 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                     a:visited{color:#6f42c1}
                     a:active{color:#d73a49}
                     .markdown-content{max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
+                    .markdown-content h1{font-size:1.4em}
+                    .markdown-content h2{font-size:1.3em}
+                    .markdown-content h3{font-size:1.2em}
+                    .markdown-content h4,.markdown-content h5,.markdown-content h6{font-size:1.1em}
+                    .markdown-content ul,.markdown-content ol{padding-left:2em;margin:16px 0}
+                    .markdown-content li {margin: 4px 0;line-height: 1.6}
                     .markdown-content a{color:#0366d6}
                     .markdown-content a:hover{text-decoration:underline}
                     .markdown-content pre{white-space:pre;overflow-x:auto;background-color:#f6f8fa;padding:16px;border-radius:6px;color:#24292e;max-width:100%;box-sizing:border-box;margin:16px 0}
