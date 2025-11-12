@@ -12,6 +12,8 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
     const [maxGridHeight, setMaxGridHeight] = useState(null);
     const [isPC, setIsPC] = useState(false);
     const gridContainerRef = useRef(null);
+    const [singleImageHeight, setSingleImageHeight] = useState('600px');
+    const hasCalculatedHeight = useRef(false);
 
     // 检测是否为 PC 端并计算最大高度
     useEffect(() => {
@@ -37,6 +39,28 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
         window.addEventListener('resize', checkIsPC);
         return () => window.removeEventListener('resize', checkIsPC);
     }, []);
+
+    useEffect(() => {
+        if (images && images.length === 1 && gridContainerRef.current && !hasCalculatedHeight.current) {
+            const containerWidth = gridContainerRef.current.offsetWidth;
+            const defaultHeight = containerWidth * 4 / 3;
+
+            const img = new Image();
+            img.src = images[0];
+
+            img.onload = () => {
+                const imageAspectRatio = img.height / img.width;
+                const calculatedImageHeight = containerWidth * imageAspectRatio;
+
+                if (calculatedImageHeight < defaultHeight) {
+                    setSingleImageHeight(`${calculatedImageHeight}px`);
+                } else {
+                    setSingleImageHeight(`${Math.min(defaultHeight, 600)}px`);
+                }
+                hasCalculatedHeight.current = true;
+            };
+        }
+    }, [images]);
 
     // 开始按顺序加载图片
     useEffect(() => {
@@ -125,6 +149,77 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
     const renderGrid = () => {
         const imageCount = images.length;
         
+        // 单张图片居中显示
+        if (imageCount === 1) {
+            const isLoaded = loadedImages.includes(0);
+            const isLoading = currentLoadingIndex === 0 && !isLoaded;
+            
+            // 如果图片还未加载，使用较小的容器高度
+            const containerHeight = isLoaded ? singleImageHeight : '100px';
+            
+            const singleImageContainerStyle = {
+                position: 'relative',
+                margin: '20px 0',
+                maxHeight: containerHeight,
+                height: containerHeight,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: 'transparent',
+            };
+            
+            const singleImageStyle = {
+                maxWidth: '100%',
+                maxHeight: '100%',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                margin: '0 auto',
+                display: 'block',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+            };
+            
+            if (!isLoaded && !isLoading) {
+                const singleImagePlaceholderStyle = {
+                    width: '60px',
+                    height: '60px',
+                    backgroundColor: '#f0f0f0',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                };
+                
+                return (
+                    <div style={singleImageContainerStyle}>
+                        <div style={singleImagePlaceholderStyle}>
+                            <div style={styles.placeholderLoader}>
+                                <div style={styles.placeholderDot}></div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div style={singleImageContainerStyle}>
+                    <LazyImage
+                        src={images[0]}
+                        alt="single-image"
+                        style={singleImageStyle}
+                        onClick={() => onImageClick(images, 0)}
+                    />
+                </div>
+            );
+        }
+        
         // 计算网格样式，在 PC 端添加尺寸限制以保持 1:1 比例
         const getGridStyle = (baseStyle, columns, rows) => {
             if (isPC && maxGridHeight) {
@@ -159,7 +254,7 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
                     {images.map((img, index) => renderImageItem(img, index))}
                 </div>
             );
-        } else if (imageCount <= 9) {
+        } else {
             // 3x3 grid for 5-9 images
             const rows = Math.ceil(imageCount / 3);
             return (
@@ -169,24 +264,6 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
                     gridTemplateRows: `repeat(${rows}, 1fr)`,
                 }, 3, rows)}>
                     {images.map((img, index) => renderImageItem(img, index))}
-                </div>
-            );
-        } else {
-            // More than 9 images - show first 9 in 3x3 grid with indicator
-            return (
-                <div>
-                    <div style={getGridStyle({
-                        ...styles.imageGrid,
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gridTemplateRows: 'repeat(3, 1fr)',
-                    }, 3, 3)}>
-                        {images.slice(0, 9).map((img, index) => renderImageItem(img, index))}
-                    </div>
-                    {imageCount > 9 && (
-                        <div style={styles.imageCountIndicator}>
-                            正在按顺序加载... ({loadedImages.length}/{imageCount})
-                        </div>
-                    )}
                 </div>
             );
         }
