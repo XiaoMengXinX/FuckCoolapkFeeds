@@ -88,10 +88,10 @@ export default function Home() {
       <Head>
         <title>Coolapk1s</title>
         <link rel="icon" href="/favicon.ico" />
-        <meta name="description" content="Remove Coolapk tracking parameters and provide post preview with Markdown support without intervening sharing." />
+        <meta name="description" content="一键去除 Coolapk 跟踪参数，并提供支持 Markdown 且无干扰的网页动态预览。" />
 
         <meta property="og:title" content="Coolapk1s" />
-        <meta property="og:description" content="Remove Coolapk tracking parameters and provide post preview with Markdown support without intervening sharing." />
+        <meta property="og:description" content="一键去除 Coolapk 跟踪参数，并提供支持 Markdown 且无干扰的网页动态预览。" />
 
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#28a745" />
