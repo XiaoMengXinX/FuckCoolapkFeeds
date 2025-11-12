@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
 import { styles } from '../styles/homeStyles';
 
 export default function Home() {
@@ -8,8 +7,6 @@ export default function Home() {
   const [outputLink, setOutputLink] = useState('');
   const [host, setHost] = useState('');
   const [isMobile, setIsMobile] = useState(false);
-
-  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -90,8 +87,14 @@ export default function Home() {
     <div className="container">
       <Head>
         <title>Coolapk1s</title>
-        <meta name="description" content="Remove Coolapk tracking parameters and provide post preview with Markdown support without intervening sharing." />
         <link rel="icon" href="/favicon.ico" />
+        <meta name="description" content="Remove Coolapk tracking parameters and provide post preview with Markdown support without intervening sharing." />
+
+        <meta property="og:title" content="Coolapk1s" />
+        <meta property="og:description" content="Remove Coolapk tracking parameters and provide post preview with Markdown support without intervening sharing." />
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#28a745" />
       </Head>
 
       <main className="main">
