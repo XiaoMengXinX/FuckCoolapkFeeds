@@ -86,6 +86,8 @@ export const styles = {
         display: 'flex',
         alignItems: 'center',
         position: 'relative',
+        flexWrap: 'wrap',
+        gap: '10px',
     },
     avatar: {
         width: '50px',
@@ -220,12 +222,13 @@ export const styles = {
     controlsContainer: {
         display: 'flex',
         alignItems: 'center',
-        position: 'absolute',
-        right: 0,
+        marginLeft: 'auto',
+        flexShrink: 0,
     },
     switchLabel: {
-        fontSize: '1em',
-        marginRight: '10px',
+        fontSize: '0.85em',
+        marginRight: '8px',
+        color: '#666',
     },
     imageGridContainer: {
         margin: '20px 0',

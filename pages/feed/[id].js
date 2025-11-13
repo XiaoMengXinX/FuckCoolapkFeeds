@@ -68,7 +68,6 @@ const FeedPage = ({ feed, error, id }) => {
                             <div style={styles.dateline}>{formattedDate}</div>
                         </div>
                         <div style={styles.controlsContainer}>
-                            <span style={styles.switchLabel}>Markdown</span>
                             <label className="switch">
                                 <input type="checkbox" checked={isMarkdownEnabled} onChange={() => setIsMarkdownEnabled(!isMarkdownEnabled)} />
                                 <span className="slider"></span>
