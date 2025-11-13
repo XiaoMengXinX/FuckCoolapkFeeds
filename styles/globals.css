@@ -385,7 +385,7 @@ body.dark-mode .markdown-content table tr:hover {
   height: auto;
   display: block;
   margin: 16px auto;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 

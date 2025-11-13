@@ -48,7 +48,7 @@ export const styles = `
     padding: 1rem 1.5rem;
     font-size: 1.1rem;
     border: 2px solid #ddd;
-    border-radius: 8px;
+    border-radius: 4px;
     outline: none;
     transition: border-color 0.3s, box-shadow 0.3s;
     background-color: white;
@@ -73,7 +73,7 @@ export const styles = `
     color: white;
     cursor: pointer;
     transition: all 0.3s;
-    border-radius: 8px;
+    border-radius: 4px;
     white-space: nowrap;
   }
 
@@ -135,7 +135,7 @@ export const styles = `
     word-break: break-all;
     background-color: #f8f9fa;
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: 4px;
     width: 100%;
     border: 2px solid #e9ecef;
     transition: all 0.3s ease;
@@ -279,7 +279,7 @@ export const styles = `
     font-size: 1rem;
     transition: color 0.3s ease, background-color 0.3s ease;
     padding: 0.5rem 1rem;
-    border-radius: 6px;
+    border-radius: 4px;
   }
 
   .github-link:visited {

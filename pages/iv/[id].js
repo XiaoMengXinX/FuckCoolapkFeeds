@@ -126,7 +126,7 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                     .iv-source-link{margin:0;font-size:.9em}
                     .iv-footer{padding:20px;border-top:1px solid #e5e5e5;text-align:center;color:#999;font-size:.9em}
                     .iv-image-container{margin:20px 0;text-align:center}
-                    .iv-image{max-width:100%;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,.1);display:block;margin:0 auto}
+                    .iv-image{max-width:100%;border-radius:4px;box-shadow:0 4px 8px rgba(0,0,0,.1);display:block;margin:0 auto}
                     .iv-image-description{margin-top:8px;color:#666;font-size:.9em;text-align:center}
                     .iv-pre-wrap{white-space:pre-wrap}
                     a{word-break:break-all;overflow-wrap:break-word;color:#0366d6;text-decoration:none;transition:color .2s ease}
