@@ -4,6 +4,7 @@ import { styles } from '../../styles/feedStyles';
 export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [startX, setStartX] = useState(0);
+    const [dragOffset, setDragOffset] = useState(0);
     const [currentImageIndex, setCurrentImageIndex] = useState(currentIndex);
     const [translateX, setTranslateX] = useState(-(currentIndex + 1) * 100);
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -94,6 +95,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     }, [currentImageIndex, isMobile]);
 
     const goToPrevious = () => {
+        setDragOffset(0);
         setIsTransitioning(true);
         const newIndex = currentImageIndex > 0 ? currentImageIndex - 1 : images.length - 1;
         
@@ -115,6 +117,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     };
 
     const goToNext = () => {
+        setDragOffset(0);
         setIsTransitioning(true);
         const newIndex = currentImageIndex < images.length - 1 ? currentImageIndex + 1 : 0;
         
@@ -140,25 +143,50 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         if (!isMobile) return;
         setIsDragging(true);
         setStartX(e.clientX);
+        setDragOffset(0);
+        setIsTransitioning(false);
     };
 
     const handleMouseMove = (e) => {
         if (!isDragging || !isMobile) return;
-        const diffX = startX - e.clientX;
         
-        if (Math.abs(diffX) > 100) { // 拖拽距离阈值
-            if (diffX > 0) {
-                goToNext();
-            } else {
-                goToPrevious();
-            }
-            setIsDragging(false);
-        }
+        const currentX = e.clientX;
+        const diffX = currentX - startX;
+        
+        // 计算拖拽偏移量（转换为百分比）
+        const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+        const offsetPercent = (diffX / containerWidth) * 100;
+        
+        // 实时更新位置，让图片跟随鼠标
+        setDragOffset(offsetPercent);
     };
 
     const handleMouseUp = () => {
         if (!isMobile) return;
         setIsDragging(false);
+        
+        // 计算拖拽距离
+        const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+        const dragThreshold = containerWidth * 0.3; // 30% 的宽度作为切换阈值
+        const dragDistance = (dragOffset / 100) * containerWidth;
+        
+        if (Math.abs(dragDistance) > dragThreshold) {
+            // 拖拽距离超过阈值，切换图片
+            if (dragDistance < 0) {
+                // 向左拖拽，显示下一张
+                goToNext();
+            } else {
+                // 向右拖拽，显示上一张
+                goToPrevious();
+            }
+        } else {
+            // 拖拽距离不够，回弹到当前图片
+            setIsTransitioning(true);
+            setDragOffset(0);
+            setTimeout(() => {
+                setIsTransitioning(false);
+            }, 300);
+        }
     };
 
     const handleTouchStart = (e) => {
@@ -166,25 +194,50 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         if (!isMobile) return;
         setIsDragging(true);
         setStartX(e.touches[0].clientX);
+        setDragOffset(0);
+        setIsTransitioning(false);
     };
 
     const handleTouchMove = (e) => {
         if (!isDragging || !isMobile) return;
-        const diffX = startX - e.touches[0].clientX;
         
-        if (Math.abs(diffX) > 100) {
-            if (diffX > 0) {
-                goToNext();
-            } else {
-                goToPrevious();
-            }
-            setIsDragging(false);
-        }
+        const currentX = e.touches[0].clientX;
+        const diffX = currentX - startX;
+        
+        // 计算拖拽偏移量（转换为百分比）
+        const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+        const offsetPercent = (diffX / containerWidth) * 100;
+        
+        // 实时更新位置，让图片跟随手指
+        setDragOffset(offsetPercent);
     };
 
     const handleTouchEnd = () => {
         if (!isMobile) return;
         setIsDragging(false);
+        
+        // 计算拖拽距离
+        const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+        const dragThreshold = containerWidth * 0.3; // 30% 的宽度作为切换阈值
+        const dragDistance = (dragOffset / 100) * containerWidth;
+        
+        if (Math.abs(dragDistance) > dragThreshold) {
+            // 拖拽距离超过阈值，切换图片
+            if (dragDistance < 0) {
+                // 向左拖拽，显示下一张
+                goToNext();
+            } else {
+                // 向右拖拽，显示上一张
+                goToPrevious();
+            }
+        } else {
+            // 拖拽距离不够，回弹到当前图片
+            setIsTransitioning(true);
+            setDragOffset(0);
+            setTimeout(() => {
+                setIsTransitioning(false);
+            }, 300);
+        }
     };
 
     const handleBackgroundClick = (e) => {
@@ -237,7 +290,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 ref={containerRef}
                 style={{
                     ...styles.lightboxSliderContainer,
-                    transform: `translateX(${translateX}%)`,
+                    transform: `translateX(${translateX + dragOffset}%)`,
                     transition: isTransitioning ? 'transform 0.3s ease-out' : 'none',
                 }}
             >
