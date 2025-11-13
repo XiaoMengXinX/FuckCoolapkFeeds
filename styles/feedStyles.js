@@ -86,14 +86,16 @@ export const styles = {
         display: 'flex',
         alignItems: 'center',
         position: 'relative',
-        flexWrap: 'wrap',
         gap: '10px',
+        minHeight: '50px',
+        flexWrap: 'wrap',
     },
     avatar: {
         width: '50px',
         height: '50px',
         borderRadius: '50%',
         marginRight: '15px',
+        flexShrink: 0,
     },
     username: {
         fontWeight: 'bold',
@@ -224,6 +226,9 @@ export const styles = {
         alignItems: 'center',
         marginLeft: 'auto',
         flexShrink: 0,
+        width: '85px',
+        justifyContent: 'flex-end',
+        order: 999,
     },
     switchLabel: {
         fontSize: '0.85em',
