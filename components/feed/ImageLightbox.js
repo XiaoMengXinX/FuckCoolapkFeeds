@@ -67,21 +67,38 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             e.preventDefault();
             
             const now = Date.now();
-            const timeSinceLastWheel = now - lastWheelTimeRef.current;
+            const timeSinceLastSwitch = now - lastWheelTimeRef.current;
             
-            // 防抖：如果距离上次滚轮事件小于 150ms，则忽略
-            if (timeSinceLastWheel < 150) {
+            // 冷却时间：切换图片后 1000ms 内忽略滚轮事件
+            if (timeSinceLastSwitch < 1000) {
                 return;
             }
             
-            lastWheelTimeRef.current = now;
+            // 判断滚动方向：优先检测横向滚动（触摸板横向滑动）
+            const isHorizontalScroll = Math.abs(e.deltaX) > Math.abs(e.deltaY);
             
-            if (e.deltaY > 0) {
-                // 向下滚动，切换到下一张
-                goToNext();
-            } else if (e.deltaY < 0) {
-                // 向上滚动，切换到上一张
-                goToPrevious();
+            if (isHorizontalScroll) {
+                // 横向滚动
+                if (e.deltaX > 0) {
+                    // 向右滚动，切换到下一张
+                    lastWheelTimeRef.current = now;
+                    goToNext();
+                } else if (e.deltaX < 0) {
+                    // 向左滚动，切换到上一张
+                    lastWheelTimeRef.current = now;
+                    goToPrevious();
+                }
+            } else {
+                // 纵向滚动
+                if (e.deltaY > 0) {
+                    // 向下滚动，切换到下一张
+                    lastWheelTimeRef.current = now;
+                    goToNext();
+                } else if (e.deltaY < 0) {
+                    // 向上滚动，切换到上一张
+                    lastWheelTimeRef.current = now;
+                    goToPrevious();
+                }
             }
         };
 
@@ -167,7 +184,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         
         // 计算拖拽距离
         const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-        const dragThreshold = containerWidth * 0.3; // 30% 的宽度作为切换阈值
+        const dragThreshold = containerWidth * 0.15; // 15% 的宽度作为切换阈值
         const dragDistance = (dragOffset / 100) * containerWidth;
         
         if (Math.abs(dragDistance) > dragThreshold) {
@@ -218,7 +235,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         
         // 计算拖拽距离
         const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-        const dragThreshold = containerWidth * 0.3; // 30% 的宽度作为切换阈值
+        const dragThreshold = containerWidth * 0.15; // 15% 的宽度作为切换阈值
         const dragDistance = (dragOffset / 100) * containerWidth;
         
         if (Math.abs(dragDistance) > dragThreshold) {
