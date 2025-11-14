@@ -99,7 +99,7 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
 
     if (feed.feedType === 'feedArticle') {
         return renderArticleContent(feed.message_raw_output);
-    } else if (['feed', 'comment', 'picture', 'question', 'answer'].includes(feed.feedType)) {
+    } else if (['feed', 'comment', 'picture', 'question', 'answer', 'rating'].includes(feed.feedType)) {
         return renderStandardFeed();
     } else {
         return <div style={styles.centered}>Unsupported feed type: {feed.feedType}</div>;
