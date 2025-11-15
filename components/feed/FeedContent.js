@@ -46,7 +46,7 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                             <LazyImage
                                 src={imageUrl}
                                 alt={part.description || `feed-image-${index}`}
-                                style={{ ...(isPC() ? { ...styles.image, maxWidth: '80%' } : styles.image), cursor: 'pointer' }}
+                                style={{ ...(isPC() ? { ...styles.image, maxWidth: '70%' } : styles.image), cursor: 'pointer' }}
                                 onClick={() => {
                                     const processedImages = allImages.map(p => proxyImage(p.url));
                                     onImageClick(processedImages, imageIndex);
