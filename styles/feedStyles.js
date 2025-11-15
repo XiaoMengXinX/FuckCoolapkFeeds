@@ -214,7 +214,7 @@ export const styles = {
     },
     lightboxImage: {
         maxWidth: '95vw',
-        maxHeight: '80vh',
+        maxHeight: '100vh',
         width: 'auto',
         height: 'auto',
         objectFit: 'contain',

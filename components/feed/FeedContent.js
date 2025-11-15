@@ -51,6 +51,7 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
                                     const processedImages = allImages.map(p => proxyImage(p.url));
                                     onImageClick(processedImages, imageIndex);
                                 }}
+                                enableLongImageCollapse={true}
                             />
                             {part.description && <div style={styles.imageDescription}>{part.description}</div>}
                         </div>
