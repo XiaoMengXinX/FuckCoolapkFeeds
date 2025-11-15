@@ -55,6 +55,9 @@ export const TelegramInstantViewTags = ({ feed }) => {
 const MetaTags = ({ feed, isTelegram }) => {
     return (
         <Head>
+            {!isTelegram && (
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            )}
             <title>{feed ? (feed.feedType === 'feedArticle' ? feed.message_title : feed.title) : 'Loading...'}</title>
             <OgTags feed={feed} />
             {isTelegram && <TelegramInstantViewTags feed={feed} />}
