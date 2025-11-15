@@ -13,7 +13,7 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
 
     // 长图阈值：高度/宽度 > 3
     const LONG_IMAGE_RATIO = 3;
-    const COLLAPSED_HEIGHT = 300; // 折叠时显示的高度
+    const COLLAPSED_HEIGHT = 400; // 折叠时显示的高度
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -94,11 +94,20 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
     const handleImageLoad = () => {
         setLoaded(true);
         
-        // 获取图片实际渲染宽度（无论是否为长图都获取）
+        // 确保在图片加载完成后立即检查并设置尺寸和长图状态
         if (imageRef.current) {
-            const displayWidth = imageRef.current.offsetWidth;
-            if (displayWidth > 0) {
-                setImageDisplayWidth(`${displayWidth}px`);
+            const img = imageRef.current;
+            const width = img.naturalWidth;
+            const height = img.naturalHeight;
+
+            if (width > 0 && height > 0) {
+                setImageSize({ width, height });
+                setDimensionsKnown(true);
+
+                if (enableLongImageCollapse && height / width > LONG_IMAGE_RATIO) {
+                    setIsLongImage(true);
+                }
+                setImageDisplayWidth(`${img.offsetWidth}px`);
             }
         }
     };
@@ -190,16 +199,6 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                             transition: 'all 0.3s ease',
                             zIndex: 10,
                             backdropFilter: 'blur(4px)',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = 'rgba(33, 136, 56, 0.95)';
-                            e.target.style.transform = 'translateX(-50%) translateY(-2px)';
-                            e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.9)';
-                            e.target.style.transform = 'translateX(-50%) translateY(0)';
-                            e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
                         }}
                     >
                         {isExpanded ? '收起长图 ▲' : '展开长图 ▼'}
