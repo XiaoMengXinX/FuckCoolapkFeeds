@@ -78,7 +78,7 @@ export const styles = {
         marginBottom: '20px',
     },
     title: {
-        fontSize: '1.8em',
+        fontSize: '1.5em',
         fontWeight: 'bold',
         marginBottom: '10px',
     },
