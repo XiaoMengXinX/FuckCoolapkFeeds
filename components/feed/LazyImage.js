@@ -149,6 +149,10 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                     position: 'relative',
                     maxHeight: isLongImage && !isExpanded ? `${COLLAPSED_HEIGHT}px` : 'none',
                     overflow: 'hidden',
+                    height: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: isLongImage && !isExpanded ? 'flex-start' : 'center',
                 }}
             >
                 <img
