@@ -21,6 +21,9 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const lastWheelTimeRef = useRef(0);
     const initialPinchDistanceRef = useRef(0);
     const lastPinchScaleRef = useRef(1);
+    const pinchCenterRef = useRef({ x: 0, y: 0 });
+    const initialPinchCenterRef = useRef({ x: 0, y: 0 });
+    const initialImagePositionRef = useRef({ x: 0, y: 0 });
     const wheelRAFRef = useRef(null);
     const wheelScrollTimeoutRef = useRef(null);
     
@@ -405,15 +408,24 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             setIsPinching(true);
             setIsDragging(false);
             
-            // 计算初始双指距离
+            // 计算初始双指距离和中心点
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
             const distance = Math.hypot(
                 touch2.clientX - touch1.clientX,
                 touch2.clientY - touch1.clientY
             );
+            
+            // 计算初始双指中心点
+            const centerX = (touch1.clientX + touch2.clientX) / 2;
+            const centerY = (touch1.clientY + touch2.clientY) / 2;
+            
+            // 保存初始状态 - 每次新的缩放手势都重新保存
             initialPinchDistanceRef.current = distance;
             lastPinchScaleRef.current = scale;
+            initialImagePositionRef.current = { ...imagePosition };
+            initialPinchCenterRef.current = { x: centerX, y: centerY };
+            
             return;
         }
         
@@ -438,12 +450,12 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const handleTouchMove = (e) => {
         if (!isMobile) return;
         
-        // 如果是双指触摸，处理缩放
+        // 如果是双指触摸，处理缩放和移动
         if (e.touches.length === 2) {
             setIsPinching(true);
             setIsDragging(false);
             
-            // 计算当前双指距离
+            // 计算当前双指距离和中心点
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
             const distance = Math.hypot(
@@ -451,10 +463,39 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 touch2.clientY - touch1.clientY
             );
             
-            // 计算缩放比例
+            // 计算当前双指中心点（屏幕坐标）
+            const centerX = (touch1.clientX + touch2.clientX) / 2;
+            const centerY = (touch1.clientY + touch2.clientY) / 2;
+            
+            // 计算双指中心点的移动距离
+            const centerDeltaX = centerX - initialPinchCenterRef.current.x;
+            const centerDeltaY = centerY - initialPinchCenterRef.current.y;
+            
+            // 计算缩放比例变化
             const scaleChange = distance / initialPinchDistanceRef.current;
             const newScale = Math.max(1, Math.min(15, lastPinchScaleRef.current * scaleChange));
+            
+            // 计算初始缩放中心点相对于视口中心的偏移
+            const viewportCenterX = window.innerWidth / 2;
+            const viewportCenterY = window.innerHeight / 2;
+            const initialTouchOffsetX = initialPinchCenterRef.current.x - viewportCenterX;
+            const initialTouchOffsetY = initialPinchCenterRef.current.y - viewportCenterY;
+            
+            // 计算手指在图片坐标系中的位置（基于初始位置）
+            const pointInImageX = (initialTouchOffsetX - initialImagePositionRef.current.x) / lastPinchScaleRef.current;
+            const pointInImageY = (initialTouchOffsetY - initialImagePositionRef.current.y) / lastPinchScaleRef.current;
+            
+            // 计算新的图片位置：
+            // 1. 先根据缩放调整位置，使图片上的点保持在初始手指位置
+            // 2. 再加上手指中心点的移动距离
+            const newX = initialTouchOffsetX - pointInImageX * newScale + centerDeltaX;
+            const newY = initialTouchOffsetY - pointInImageY * newScale + centerDeltaY;
+            
+            // 应用边界限制
+            const constrained = constrainPosition(newX, newY, newScale);
+            
             setScale(newScale);
+            setImagePosition(constrained);
             
             return;
         }
@@ -487,12 +528,39 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const handleTouchEnd = (e) => {
         if (!isMobile) return;
         
-        // 如果刚才在缩放，重置状态但不切换图片
+        // 如果还有触摸点存在，说明是多指操作中的一个手指抬起
+        if (e.touches.length > 0) {
+            // 如果从双指变成单指，结束缩放状态但保持当前缩放和位置
+            if (isPinching && e.touches.length === 1) {
+                setIsPinching(false);
+                // 不重置 initialPinchDistanceRef 等，因为可能还会继续操作
+                
+                // 如果缩放到1以下，重置位置
+                if (scale <= 1) {
+                    setScale(1);
+                    setImagePosition({ x: 0, y: 0 });
+                }
+                
+                // 转换为单指拖动状态（如果图片已缩放）
+                if (scale > 1) {
+                    setIsDraggingImage(true);
+                    setDragStartPos({
+                        x: e.touches[0].clientX - imagePosition.x,
+                        y: e.touches[0].clientY - imagePosition.y
+                    });
+                }
+            }
+            return;
+        }
+        
+        // 所有手指都抬起了，完全结束触摸操作
         if (isPinching) {
             setIsPinching(false);
             setIsDragging(false);
             setDragOffset(0);
             initialPinchDistanceRef.current = 0;
+            initialPinchCenterRef.current = { x: 0, y: 0 };
+            initialImagePositionRef.current = { x: 0, y: 0 };
             
             // 如果缩放到1以下，重置位置
             if (scale <= 1) {

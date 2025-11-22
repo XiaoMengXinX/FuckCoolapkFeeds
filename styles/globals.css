@@ -28,6 +28,23 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* 禁用所有元素的触摸高亮 */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* 特别针对按钮和可点击元素 */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
 /* Dark mode styles */
 @media (prefers-color-scheme: dark) {
   body {
