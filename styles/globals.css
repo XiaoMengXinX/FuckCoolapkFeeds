@@ -10,14 +10,8 @@
   100% { transform: rotate(360deg); }
 }
 
-/* 隐藏滚动条 */
 html {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-html::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  scrollbar-gutter: stable;
 }
 
 body {
