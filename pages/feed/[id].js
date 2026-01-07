@@ -6,10 +6,13 @@ import { proxyImage } from '../../lib/imageProxy';
 import MetaTags from '../../components/feed/MetaTags';
 import FeedContent from '../../components/feed/FeedContent';
 import { ImageLightbox } from '../../components/feed/ImageLightbox';
+import AISummary from '../../components/feed/AISummary';
 import { fetchFeedData } from '../../lib/feedLoader';
+import { generateAISummary } from '../../lib/aiSummary';
+import { optimizeFeedData } from '../../lib/feedOptimizer';
 import { styles } from '../../styles/feedStyles';
 
-const FeedPage = ({ feed, error, id }) => {
+const FeedPage = ({ feed, error, id, aiSummary }) => {
     const [isBarVisible, setIsBarVisible] = useState(true);
     const [lightboxImages, setLightboxImages] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -76,6 +79,9 @@ const FeedPage = ({ feed, error, id }) => {
                     </div>
                 </div>
             )}
+            {aiSummary && (
+                <AISummary summary={aiSummary} />
+            )}
             <div style={styles.content}>
                 <FeedContent
                     feed={feed}
@@ -124,6 +130,15 @@ export async function getServerSideProps(context) {
 
     const data = await fetchFeedData(id, req);
 
+    // Generate AI summary if feed data is available
+    let aiSummary = null;
+    if (data.props.feed) {
+        aiSummary = await generateAISummary(data.props.feed);
+    }
+
+    // Optimize feed data to reduce page size
+    const optimizedFeed = optimizeFeedData(data.props.feed);
+
     if (data.props.feed) {
         res.setHeader(
             'Cache-Control',
@@ -136,7 +151,14 @@ export async function getServerSideProps(context) {
 
     }
 
-    return { ...data, props: { ...data.props, id } };
+    return {
+        props: {
+            feed: optimizedFeed,
+            error: data.props.error,
+            id,
+            aiSummary
+        }
+    };
 }
 
 export default FeedPage;
