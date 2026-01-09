@@ -15,7 +15,7 @@ const AISummary = ({ summary }) => {
                 {summary}
             </div>
             <div style={summaryStyles.disclaimer}>
-                摘要由 AI 模型总结生成，内容仅供参考，请仔细甄别
+                摘要由 AI 模型总结生成，内容仅供参考
             </div>
         </div>
     );
