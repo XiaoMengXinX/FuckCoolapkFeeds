@@ -6,8 +6,33 @@
 
 /* 图片加载动画 */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+:root {
+  --ai-summary-bg: #f8f9fa;
+  --ai-summary-border: #e0e0e0;
+  --ai-summary-header-color: #666;
+  --ai-summary-content-color: #333;
+  --ai-summary-disclaimer-color: #999;
+  --ai-summary-separator: #e8e8e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ai-summary-bg: #222;
+    --ai-summary-border: #333;
+    --ai-summary-header-color: #aaa;
+    --ai-summary-content-color: #e0e0e0;
+    --ai-summary-disclaimer-color: #888;
+    --ai-summary-separator: #333;
+  }
 }
 
 html {
@@ -50,6 +75,12 @@ input[type="reset"] {
 body.dark-mode {
   background-color: #1a1a1a;
   color: #e0e0e0;
+  --ai-summary-bg: #222;
+  --ai-summary-border: #333;
+  --ai-summary-header-color: #aaa;
+  --ai-summary-content-color: #e0e0e0;
+  --ai-summary-disclaimer-color: #888;
+  --ai-summary-separator: #333;
 }
 
 body.light-mode {
@@ -96,16 +127,16 @@ body.light-mode {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: #28a745;
   color: white;
 }
 
-input:checked + .slider:hover {
+input:checked+.slider:hover {
   background-color: #218838;
 }
 
-input:focus + .slider {
+input:focus+.slider {
   box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
 }
 
@@ -164,20 +195,20 @@ body.dark-mode .markdown-content pre {
   padding: .2em .4em;
   margin: 0;
   font-size: 85%;
-  background-color: rgba(27,31,35,.05);
+  background-color: rgba(27, 31, 35, .05);
   border-radius: 3px;
   color: #24292e;
 }
 
 @media (prefers-color-scheme: dark) {
   .markdown-content code {
-    background-color: rgba(255,255,255,.1);
+    background-color: rgba(255, 255, 255, .1);
     color: #e6edf3;
   }
 }
 
 body.dark-mode .markdown-content code {
-  background-color: rgba(255,255,255,.1);
+  background-color: rgba(255, 255, 255, .1);
   color: #e6edf3;
 }
 
@@ -260,15 +291,15 @@ a:active {
   a {
     color: #58a6ff;
   }
-  
+
   a:hover {
     color: #79c0ff;
   }
-  
+
   a:visited {
     color: #bc8cff;
   }
-  
+
   a:active {
     color: #ff7b72;
   }
@@ -345,16 +376,16 @@ body.dark-mode a:active {
   .markdown-content table thead {
     background-color: #2d2d2d;
   }
-  
+
   .markdown-content table th,
   .markdown-content table td {
     border: 1px solid #444;
   }
-  
+
   .markdown-content table tr:nth-child(even) {
     background-color: #2d2d2d;
   }
-  
+
   .markdown-content table tr:hover {
     background-color: #3d3d3d;
   }
@@ -382,7 +413,7 @@ body.dark-mode .markdown-content table tr:hover {
   .markdown-content table {
     font-size: 0.9em;
   }
-  
+
   .markdown-content table th,
   .markdown-content table td {
     padding: 6px 8px;
@@ -396,7 +427,7 @@ body.dark-mode .markdown-content table tr:hover {
   display: block;
   margin: 16px auto;
   border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* List styles */
@@ -429,7 +460,7 @@ body.dark-mode .markdown-content table tr:hover {
   cursor: pointer;
 }
 
-.markdown-content .task-list-item input[type="checkbox"]:checked + label {
+.markdown-content .task-list-item input[type="checkbox"]:checked+label {
   text-decoration: line-through;
   color: #6c757d;
 }
@@ -465,30 +496,31 @@ body.dark-mode .markdown-content table tr:hover {
 
 /* Feed page dark mode overrides for inline styles */
 @media (prefers-color-scheme: dark) {
+
   /* Override container text color */
   div[style*="color: rgb(51, 51, 51)"],
   div[style*="color:#333"] {
     color: #e0e0e0 !important;
   }
-  
+
   /* Override header border */
   div[style*="border-bottom: 1px solid rgb(238, 238, 238)"],
   div[style*="border-bottom:1px solid #eee"] {
     border-bottom: 1px solid #444 !important;
   }
-  
+
   /* Override dateline color */
   div[style*="color: rgb(136, 136, 136)"],
   div[style*="color:#888"] {
     color: #999 !important;
   }
-  
+
   /* Override image description color */
   div[style*="color: rgb(102, 102, 102)"],
   div[style*="color:#666"] {
     color: #999 !important;
   }
-  
+
   /* Override switch label color */
   span[style*="color: rgb(51, 51, 51)"],
   span[style*="color:#333"] {
@@ -502,17 +534,17 @@ body.dark-mode .markdown-content table tr:hover {
     background-color: #3d3d3d;
     color: #adb5bd;
   }
-  
+
   .slider:hover {
     background-color: #495057;
   }
-  
-  input:checked + .slider {
+
+  input:checked+.slider {
     background-color: #28a745;
     color: white;
   }
-  
-  input:checked + .slider:hover {
+
+  input:checked+.slider:hover {
     background-color: #218838;
   }
 }

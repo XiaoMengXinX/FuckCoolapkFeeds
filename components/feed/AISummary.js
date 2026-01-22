@@ -23,11 +23,11 @@ const AISummary = ({ summary }) => {
 
 const summaryStyles = {
     container: {
-        border: '1px solid #e0e0e0',
+        border: '1px solid var(--ai-summary-border)',
         borderRadius: '8px',
         padding: '16px',
         marginBottom: '20px',
-        backgroundColor: '#f8f9fa',
+        backgroundColor: 'var(--ai-summary-bg)',
     },
     header: {
         display: 'flex',
@@ -35,7 +35,7 @@ const summaryStyles = {
         marginBottom: '8px',
         fontSize: '14px',
         fontWeight: '600',
-        color: '#666',
+        color: 'var(--ai-summary-header-color)',
     },
     icon: {
         marginRight: '6px',
@@ -48,15 +48,15 @@ const summaryStyles = {
     content: {
         fontSize: '15px',
         lineHeight: '1.6',
-        color: '#333',
+        color: 'var(--ai-summary-content-color)',
         marginBottom: '8px',
     },
     disclaimer: {
         fontSize: '12px',
-        color: '#999',
+        color: 'var(--ai-summary-disclaimer-color)',
         marginTop: '8px',
         paddingTop: '8px',
-        borderTop: '1px solid #e8e8e8',
+        borderTop: '1px solid var(--ai-summary-separator)',
     },
 };
 
