@@ -1,8 +1,8 @@
 /* 导入代码高亮主题 - 亮色模式 */
-@import url('./highlight/atom-one-light.min.css') (prefers-color-scheme: light);
+@import url("./highlight/atom-one-light.min.css") (prefers-color-scheme: light);
 
 /* 导入代码高亮主题 - 暗色模式 */
-@import url('./highlight/atom-one-dark.min.css') (prefers-color-scheme: dark);
+@import url("./highlight/atom-one-dark.min.css") (prefers-color-scheme: dark);
 
 /* 图片加载动画 */
 @keyframes spin {
@@ -43,8 +43,12 @@ body {
   background-color: #f9f9f9;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* 禁用所有元素的触摸高亮 */
@@ -124,19 +128,20 @@ body.light-mode {
 
 .slider:before {
   content: "Markdown";
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-input:checked+.slider {
+input:checked + .slider {
   background-color: #28a745;
   color: white;
 }
 
-input:checked+.slider:hover {
+input:checked + .slider:hover {
   background-color: #218838;
 }
 
-input:focus+.slider {
+input:focus + .slider {
   box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
 }
 
@@ -192,23 +197,23 @@ body.dark-mode .markdown-content pre {
 .markdown-content code {
   white-space: normal;
   word-wrap: break-word;
-  padding: .2em .4em;
+  padding: 0.2em 0.4em;
   margin: 0;
   font-size: 85%;
-  background-color: rgba(27, 31, 35, .05);
+  background-color: rgba(27, 31, 35, 0.05);
   border-radius: 3px;
   color: #24292e;
 }
 
 @media (prefers-color-scheme: dark) {
   .markdown-content code {
-    background-color: rgba(255, 255, 255, .1);
+    background-color: rgba(255, 255, 255, 0.1);
     color: #e6edf3;
   }
 }
 
 body.dark-mode .markdown-content code {
-  background-color: rgba(255, 255, 255, .1);
+  background-color: rgba(255, 255, 255, 0.1);
   color: #e6edf3;
 }
 
@@ -241,7 +246,6 @@ body.dark-mode .markdown-content code {
 body.dark-mode .markdown-content pre code.hljs {
   background-color: transparent !important;
 }
-
 
 /* Link styles - prevent overflow */
 .markdown-content a {
@@ -460,7 +464,7 @@ body.dark-mode .markdown-content table tr:hover {
   cursor: pointer;
 }
 
-.markdown-content .task-list-item input[type="checkbox"]:checked+label {
+.markdown-content .task-list-item input[type="checkbox"]:checked + label {
   text-decoration: line-through;
   color: #6c757d;
 }
@@ -496,7 +500,6 @@ body.dark-mode .markdown-content table tr:hover {
 
 /* Feed page dark mode overrides for inline styles */
 @media (prefers-color-scheme: dark) {
-
   /* Override container text color */
   div[style*="color: rgb(51, 51, 51)"],
   div[style*="color:#333"] {
@@ -539,12 +542,12 @@ body.dark-mode .markdown-content table tr:hover {
     background-color: #495057;
   }
 
-  input:checked+.slider {
+  input:checked + .slider {
     background-color: #28a745;
     color: white;
   }
 
-  input:checked+.slider:hover {
+  input:checked + .slider:hover {
     background-color: #218838;
   }
 }
@@ -576,5 +579,52 @@ body.dark-mode .markdown-content table tr:hover {
   .lazy-image-loading {
     background-color: #2d2d2d;
     color: #666;
+  }
+}
+
+/* Product Album Card - Responsive Styles */
+/* PC/Desktop styles (≥ 768px) */
+@media screen and (min-width: 768px) {
+  .product-thumbnail-container {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  
+  .product-rank-badge {
+    width: 26px !important;
+    text-align: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: -2px !important;
+  }
+  
+  .product-rank-text {
+    font-size: 16px !important;
+    font-weight: bold !important;
+    color: #000 !important;
+    letter-spacing: 2px !important;
+  }
+}
+
+/* Mobile styles (< 768px) */
+@media screen and (max-width: 767px) {
+  .product-thumbnail-container {
+    width: 70px !important;
+    height: 70px !important;
+  }
+  
+  .product-rank-badge {
+    width: 20px !important;
+    text-align: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: -2px !important;
+  }
+  
+  .product-rank-text {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    color: #000 !important;
+    letter-spacing: 2px !important;
   }
 }

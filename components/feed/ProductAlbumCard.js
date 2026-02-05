@@ -10,11 +10,11 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
 
     // Ranking badge colors based on tier (level field)
     const getRankColor = (level) => {
-        if (level === 1) return '#FFD700'; // Gold for top tier
-        if (level === 2) return '#FF6B35'; // Orange for second tier
-        if (level === 3) return '#4ECDC4'; // Teal for third tier
-        if (level === 4) return '#95A5A6'; // Gray for NPC
-        return '#666666'; // Dark gray for lowest tier
+        if (level === 1) return '#eb6058'; // 夯 - Red
+        if (level === 2) return '#f19c39'; // 顶级 - Orange
+        if (level === 3) return '#f3c844'; // 人上人 - Yellow
+        if (level === 4) return '#93c35a'; // NPC - Green
+        return '#9e9e9e'; // 拉 - Gray
     };
 
     // Ranking labels based on level
@@ -59,11 +59,14 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                         borderColor: levelColor,
                     }}>
                         {/* Left ranking badge for entire group */}
-                        <div style={{
-                            ...styles.goodsRankBadge,
-                            backgroundColor: levelColor
-                        }}>
-                            <span style={styles.goodsRankText}>
+                        <div 
+                            className="product-rank-badge"
+                            style={{
+                                ...styles.goodsRankBadge,
+                                backgroundColor: levelColor
+                            }}
+                        >
+                            <span className="product-rank-text">
                                 {getRankLabel(Number(level))}
                             </span>
                         </div>
@@ -81,6 +84,7 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                                     }}>
                                         {/* Product thumbnail */}
                                         <div 
+                                            className="product-thumbnail-container"
                                             style={{
                                                 ...styles.goodsThumbnailContainer,
                                                 cursor: 'pointer',

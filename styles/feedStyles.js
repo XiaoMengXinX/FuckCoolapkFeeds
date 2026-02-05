@@ -357,7 +357,6 @@ export const styles = {
         position: 'relative',
     },
     goodsRankBadge: {
-        width: '32px',
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
@@ -365,12 +364,6 @@ export const styles = {
         writingMode: 'vertical-rl',
         textOrientation: 'upright',
         padding: '16px 0',
-    },
-    goodsRankText: {
-        fontSize: '14px',
-        fontWeight: 'bold',
-        color: '#000',
-        letterSpacing: '2px',
     },
     goodsItemsContainer: {
         flex: 1,
@@ -391,8 +384,6 @@ export const styles = {
         gap: '16px',
     },
     goodsThumbnailContainer: {
-        width: '100px',
-        height: '100px',
         flexShrink: 0,
         borderRadius: '8px',
         overflow: 'hidden',
