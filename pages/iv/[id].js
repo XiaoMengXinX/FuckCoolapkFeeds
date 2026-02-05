@@ -15,6 +15,50 @@ export const config = {
 };
 
 const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
+    // Render product album as simplified list
+    const renderProductAlbum = () => {
+        if (!feed.productAlbumDetailInfo || feed.productAlbumDetailInfo.length === 0) return null;
+
+        // Group by level
+        const groupedByLevel = feed.productAlbumDetailInfo.reduce((acc, item) => {
+            if (!acc[item.level]) {
+                acc[item.level] = [];
+            }
+            acc[item.level].push(item);
+            return acc;
+        }, {});
+
+        // Level labels
+        const levelLabels = {
+            1: '🏆夯',
+            2: '🆙顶级',
+            3: '👑人上人',
+            4: '🚶🏻➡️NPC',
+            5: '💩'
+        };
+
+        // Sort levels
+        const sortedLevels = Object.keys(groupedByLevel).sort((a, b) => Number(a) - Number(b));
+
+        return (
+            <div>
+                {sortedLevels.map((level) => {
+                    const items = groupedByLevel[level];
+                    return (
+                        <div key={level}>
+                            <h3>【{levelLabels[level] || level}】</h3>
+                            <ul>
+                                {items.map((item) => (
+                                    <li key={item.id}>{item.item_name}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
     const renderFeedContent = () => {
         if (!feed) {
             return <div className="iv-centered">No feed data found.</div>;
@@ -83,7 +127,13 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                 );
             }
         }
-        return messageContent;
+        
+        return (
+            <>
+                {messageContent}
+                {renderProductAlbum()}
+            </>
+        );
     };
 
     if (error) {

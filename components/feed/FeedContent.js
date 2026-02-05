@@ -2,6 +2,7 @@ import { LazyImage } from './LazyImage';
 import { ImageGrid } from './ImageGrid';
 import { decodeEntities } from '../../lib/markdownProcessor';
 import { proxyImage } from '../../lib/imageProxy';
+import ProductAlbumCard from './ProductAlbumCard';
 
 const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLinks, styles, isMarkdownEnabled, imageUrls = [] }) => {
     if (!feed) {
@@ -65,6 +66,13 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
         }
     };
 
+    // Render product album goods if available
+    const renderProductAlbum = () => {
+        if (!feed.productAlbumDetailInfo || feed.productAlbumDetailInfo.length === 0) return null;
+        
+        return <ProductAlbumCard goods={feed.productAlbumDetailInfo} styles={styles} onImageClick={onImageClick} />;
+    };
+
     const renderStandardFeed = () => {
         let htmlMessage = feed.message;
 
@@ -99,7 +107,19 @@ const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLink
     };
 
     if (feed.feedType === 'feedArticle') {
-        return renderArticleContent(feed.message_raw_output);
+        return (
+            <>
+                {renderArticleContent(feed.message_raw_output)}
+                {renderProductAlbum()}
+            </>
+        );
+    } else if (feed.feedType === 'productAlbum') {
+        return (
+            <>
+                {renderStandardFeed()}
+                {renderProductAlbum()}
+            </>
+        );
     } else if (['feed', 'comment', 'picture', 'question', 'answer', 'rating'].includes(feed.feedType)) {
         return renderStandardFeed();
     } else {
