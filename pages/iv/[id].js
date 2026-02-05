@@ -33,8 +33,8 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
             1: '🏆夯',
             2: '🆙顶级',
             3: '👑人上人',
-            4: '🚶🏻➡️NPC',
-            5: '💩'
+            4: '🚶🏻‍➡️NPC',
+            5: '💩拉'
         };
 
         // Sort levels

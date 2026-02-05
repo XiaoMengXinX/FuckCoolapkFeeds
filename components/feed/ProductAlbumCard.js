@@ -24,7 +24,7 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
             2: '顶级',
             3: '人上人',
             4: 'NPC',
-            5: '💩'
+            5: '拉'
         };
         return labels[level] || '拉';
     };
