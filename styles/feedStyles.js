@@ -457,7 +457,6 @@ export const styles = {
     goodsImagePreview: {
         display: 'flex',
         gap: '8px',
-        marginTop: '8px',
         flexWrap: 'wrap',
     },
     goodsPreviewImage: {
