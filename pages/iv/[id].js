@@ -44,9 +44,12 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
             <div>
                 {sortedLevels.map((level) => {
                     const items = groupedByLevel[level];
+                    const label = levelLabels[level];
+                    
                     return (
                         <div key={level}>
-                            <h3>【{levelLabels[level] || level}】</h3>
+                            {/* Only show heading if label exists */}
+                            {label && <h3>【{label}】</h3>}
                             <ul>
                                 {items.map((item) => (
                                     <li key={item.id}>{item.item_name}</li>

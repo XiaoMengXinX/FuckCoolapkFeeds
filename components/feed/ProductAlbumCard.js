@@ -26,7 +26,7 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
             4: 'NPC',
             5: '拉'
         };
-        return labels[level] || '拉';
+        return labels[level] || null;
     };
 
     // Parse item_images string to array
@@ -52,24 +52,27 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
             {sortedLevels.map((level) => {
                 const items = groupedByLevel[level];
                 const levelColor = getRankColor(Number(level));
+                const rankLabel = getRankLabel(Number(level));
                 
                 return (
                     <div key={level} style={{
                         ...styles.goodsLevelGroup,
                         borderColor: levelColor,
                     }}>
-                        {/* Left ranking badge for entire group */}
-                        <div 
-                            className="product-rank-badge"
-                            style={{
-                                ...styles.goodsRankBadge,
-                                backgroundColor: levelColor
-                            }}
-                        >
-                            <span className="product-rank-text">
-                                {getRankLabel(Number(level))}
-                            </span>
-                        </div>
+                        {/* Left ranking badge for entire group - only show if label exists */}
+                        {rankLabel && (
+                            <div 
+                                className="product-rank-badge"
+                                style={{
+                                    ...styles.goodsRankBadge,
+                                    backgroundColor: levelColor
+                                }}
+                            >
+                                <span className="product-rank-text">
+                                    {rankLabel}
+                                </span>
+                            </div>
+                        )}
 
                         {/* Items container */}
                         <div style={styles.goodsItemsContainer}>

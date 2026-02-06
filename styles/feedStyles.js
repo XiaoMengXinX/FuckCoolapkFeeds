@@ -374,7 +374,6 @@ export const styles = {
         position: 'relative',
         backgroundColor: 'transparent',
         display: 'flex',
-        minHeight: '120px',
         padding: '16px',
         gap: '16px',
     },
