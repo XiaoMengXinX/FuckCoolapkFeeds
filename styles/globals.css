@@ -675,4 +675,28 @@ body.dark-mode .markdown-content table tr:hover {
     background-color: #2d2d2d !important;
     color: #666 !important;
   }
+  
+  /* Image error container */
+  .image-error-container {
+    background-color: #2d2d2d !important;
+  }
+  
+  .image-error-container svg {
+    color: #666 !important;
+  }
+  
+  /* Preview image error placeholder */
+  .preview-image-error {
+    background-color: #2d2d2d !important;
+    border-color: #555 !important;
+  }
+  
+  .preview-image-error svg {
+    color: #666 !important;
+  }
+  
+  /* Compact loading state */
+  .compact-loading {
+    background-color: #2d2d2d !important;
+  }
 }

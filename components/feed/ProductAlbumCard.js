@@ -146,10 +146,11 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                                             {images.length > 0 && (
                                                 <div style={styles.goodsImagePreview}>
                                                     {images.slice(0, 3).map((img, idx) => (
-                                                        <img
+                                                        <LazyImage
                                                             key={idx}
                                                             src={proxyImage(img)}
                                                             alt={`${item.item_name}-${idx}`}
+                                                            compact={true}
                                                             style={{
                                                                 ...styles.goodsPreviewImage,
                                                                 cursor: 'pointer',

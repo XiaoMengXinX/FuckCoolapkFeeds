@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 
-export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = false }) => {
+export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = false, compact = false }) => {
     const [imageSrc, setImageSrc] = useState(null);
     const [loaded, setLoaded] = useState(false);
+    const [error, setError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
     const [isLongImage, setIsLongImage] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
@@ -93,6 +95,7 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
 
     const handleImageLoad = () => {
         setLoaded(true);
+        setError(false);
         
         // 确保在图片加载完成后立即检查并设置尺寸和长图状态
         if (imageRef.current) {
@@ -112,17 +115,102 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
         }
     };
 
+    const handleImageError = () => {
+        setLoaded(false);
+        setError(true);
+    };
+
+    const handleRetry = (e) => {
+        e.stopPropagation();
+        setError(false);
+        setLoaded(false);
+        setRetryCount(prev => prev + 1);
+        // Force reload by adding timestamp
+        setImageSrc(`${src}?retry=${retryCount + 1}`);
+    };
+
     const handleToggleExpand = (e) => {
         e.stopPropagation(); // 防止触发图片点击事件
         setIsExpanded(!isExpanded);
     };
 
     const handleImageClick = (e) => {
+        // 如果图片加载失败,点击重试
+        if (error) {
+            handleRetry(e);
+            return;
+        }
         // 点击图片直接打开灯箱
         if (onClick) {
             onClick(e);
         }
     };
+
+    // Compact mode for preview images - maintains fixed size
+    if (compact) {
+        return (
+            <div
+                ref={containerRef}
+                style={{
+                    ...style,
+                    position: 'relative',
+                    display: 'inline-block',
+                }}
+            >
+                {!loaded && imageSrc && !error && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '4px',
+                        }}
+                        className="compact-loading"
+                    >
+                        <div className="lazy-image-spinner" style={{ width: '20px', height: '20px' }}></div>
+                    </div>
+                )}
+                {error ? (
+                    <div
+                        onClick={handleRetry}
+                        style={{
+                            ...style,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f5f5f5',
+                            cursor: 'pointer',
+                        }}
+                        className="preview-image-error"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#999' }}>
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                    </div>
+                ) : (
+                    <img
+                        ref={imageRef}
+                        src={imageSrc}
+                        alt={alt}
+                        style={{
+                            ...style,
+                            opacity: loaded ? 1 : 0,
+                            transition: 'opacity 0.3s',
+                        }}
+                        onClick={handleImageClick}
+                        onLoad={handleImageLoad}
+                        onError={handleImageError}
+                    />
+                )}
+            </div>
+        );
+    }
 
     return (
         <div
@@ -132,6 +220,7 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                 width: '100%',
                 height: isLongImage && !isExpanded ? `${COLLAPSED_HEIGHT}px` : '100%',
                 maxHeight: isLongImage && !isExpanded ? `${COLLAPSED_HEIGHT}px` : 'none',
+                minHeight: isLongImage && !isExpanded ? 'auto' : '50px',
             }}
         >
             {!loaded && imageSrc && (
@@ -163,11 +252,32 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                         ...style,
                         opacity: loaded ? 1 : 0,
                         transition: 'opacity 0.3s',
-                        display: 'block',
+                        display: error ? 'none' : 'block',
                     }}
                     onClick={handleImageClick}
                     onLoad={handleImageLoad}
+                    onError={handleImageError}
                 />
+                {error && (
+                    <div
+                        onClick={handleRetry}
+                        style={{
+                            width: '100%',
+                            minHeight: '200px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f5f5f5',
+                            cursor: 'pointer',
+                            borderRadius: '4px',
+                        }}
+                        className="image-error-container"
+                    >
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#999' }}>
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                    </div>
+                )}
                 {isLongImage && !isExpanded && dimensionsKnown && (
                     <div
                         style={{
