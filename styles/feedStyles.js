@@ -80,6 +80,7 @@ export const styles = {
     title: {
         fontSize: '1.5em',
         fontWeight: 'bold',
+        marginTop: '5px',
         marginBottom: '10px',
     },
     userInfo: {

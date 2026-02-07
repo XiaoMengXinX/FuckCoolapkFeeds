@@ -9,12 +9,13 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
     if (!goods || goods.length === 0) return null;
 
     // Ranking badge colors based on tier (level field)
+    // Using CSS variables to support dark mode
     const getRankColor = (level) => {
-        if (level === 1) return '#eb6058'; // 夯 - Red
-        if (level === 2) return '#f19c39'; // 顶级 - Orange
-        if (level === 3) return '#f3c844'; // 人上人 - Yellow
-        if (level === 4) return '#93c35a'; // NPC - Green
-        return '#9e9e9e'; // 拉 - Gray
+        if (level === 1) return 'var(--rank-color-1)'; // 夯 - Red
+        if (level === 2) return 'var(--rank-color-2)'; // 顶级 - Orange
+        if (level === 3) return 'var(--rank-color-3)'; // 人上人 - Yellow
+        if (level === 4) return 'var(--rank-color-4)'; // NPC - Green
+        return 'var(--rank-color-5)'; // 拉 - Gray
     };
 
     // Ranking labels based on level
@@ -81,30 +82,52 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                                 const isFirst = index === 0;
                                 
                                 return (
-                                    <div key={item.id} style={{
-                                        ...styles.goodsCard,
-                                        borderTop: isFirst ? 'none' : `1px solid rgba(0,0,0,0.1)`,
-                                    }}>
+                                    <div 
+                                        key={item.id}
+                                        className="product-goods-card"
+                                        style={{
+                                            ...styles.goodsCard,
+                                            borderTop: isFirst ? 'none' : '1px solid var(--product-card-border)',
+                                        }}
+                                    >
                                         {/* Product thumbnail */}
                                         <div 
                                             className="product-thumbnail-container"
                                             style={{
                                                 ...styles.goodsThumbnailContainer,
-                                                cursor: 'pointer',
+                                                cursor: item.item_logo ? 'pointer' : 'default',
                                             }}
                                             onClick={() => {
-                                                if (onImageClick) {
+                                                if (onImageClick && item.item_logo) {
                                                     // Show item_logo first, then item_images
                                                     const allImages = [proxyImage(item.item_logo), ...images.map(url => proxyImage(url))];
                                                     onImageClick(allImages, 0);
                                                 }
                                             }}
                                         >
-                                            <LazyImage
-                                                src={proxyImage(item.item_logo)}
-                                                alt={item.item_name}
-                                                style={styles.goodsThumbnail}
-                                            />
+                                            {item.item_logo ? (
+                                                <LazyImage
+                                                    src={proxyImage(item.item_logo)}
+                                                    alt={item.item_name}
+                                                    style={styles.goodsThumbnail}
+                                                />
+                                            ) : (
+                                                <div 
+                                                    className="product-thumbnail-placeholder"
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '32px',
+                                                        color: '#ccc',
+                                                        backgroundColor: '#f5f5f5',
+                                                    }}
+                                                >
+                                                    📦
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Product info */}
