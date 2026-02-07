@@ -26,6 +26,8 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const initialImagePositionRef = useRef({ x: 0, y: 0 });
     const wheelRAFRef = useRef(null);
     const wheelScrollTimeoutRef = useRef(null);
+    const lastTapTimeRef = useRef(0);
+    const lastTapPosRef = useRef({ x: 0, y: 0 });
     
     const [loadedImageIndices, setLoadedImageIndices] = useState(new Set());
     
@@ -399,9 +401,79 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         }
     };
 
+    // Handle double-tap zoom for mobile
+    const handleDoubleTap = (tapX, tapY) => {
+        if (scale > 1) {
+            // Already zoomed, reset to normal
+            resetZoom();
+        } else {
+            // Zoom in to 2x at tap position
+            const newScale = 2;
+            
+            // Calculate tap position relative to viewport center
+            const viewportCenterX = window.innerWidth / 2;
+            const viewportCenterY = window.innerHeight / 2;
+            const tapOffsetX = tapX - viewportCenterX;
+            const tapOffsetY = tapY - viewportCenterY;
+            
+            // Get current image dimensions
+            const currentImageRef = imageRefs.current[currentImageIndex + 1];
+            let imageWidth = actualImageSize.width;
+            let imageHeight = actualImageSize.height;
+            
+            if (currentImageRef) {
+                imageWidth = currentImageRef.offsetWidth || imageWidth;
+                imageHeight = currentImageRef.offsetHeight || imageHeight;
+            }
+            
+            if (!imageWidth || !imageHeight) {
+                imageWidth = window.innerWidth * 0.95;
+                imageHeight = window.innerHeight * 0.8;
+            }
+            
+            // Calculate point in image coordinates
+            const pointInImageX = tapOffsetX / 1; // scale is 1 before zoom
+            const pointInImageY = tapOffsetY / 1;
+            
+            // Calculate new position to keep tap point at same screen position
+            const newX = tapOffsetX - pointInImageX * newScale;
+            const newY = tapOffsetY - pointInImageY * newScale;
+            
+            // Apply constraints
+            const constrained = constrainPosition(newX, newY, newScale);
+            
+            setScale(newScale);
+            setImagePosition(constrained);
+        }
+    };
+
     const handleTouchStart = (e) => {
         // 触摸事件只在移动端处理
         if (!isMobile) return;
+        
+        // 检测双击
+        if (e.touches.length === 1 && !isPinching) {
+            const now = Date.now();
+            const tapX = e.touches[0].clientX;
+            const tapY = e.touches[0].clientY;
+            const timeSinceLastTap = now - lastTapTimeRef.current;
+            const distanceFromLastTap = Math.hypot(
+                tapX - lastTapPosRef.current.x,
+                tapY - lastTapPosRef.current.y
+            );
+            
+            // Double-tap detected: within 300ms and within 50px
+            if (timeSinceLastTap < 300 && distanceFromLastTap < 50) {
+                e.preventDefault();
+                handleDoubleTap(tapX, tapY);
+                lastTapTimeRef.current = 0; // Reset to prevent triple-tap
+                return;
+            }
+            
+            // Record this tap
+            lastTapTimeRef.current = now;
+            lastTapPosRef.current = { x: tapX, y: tapY };
+        }
         
         // 检测是否为双指触摸（缩放手势）
         if (e.touches.length === 2) {
