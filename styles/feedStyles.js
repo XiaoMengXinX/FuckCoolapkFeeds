@@ -253,7 +253,7 @@ export const styles = {
         aspectRatio: '1',
         borderRadius: '4px',
         overflow: 'hidden',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: 'var(--image-bg)',
     },
     gridImage: {
         width: '100%',
@@ -324,7 +324,7 @@ export const styles = {
     imagePlaceholder: {
         width: '100%',
         height: '100%',
-        backgroundColor: '#f0f0f0',
+        backgroundColor: 'var(--image-bg)',
         borderRadius: '4px',
         display: 'flex',
         alignItems: 'center',

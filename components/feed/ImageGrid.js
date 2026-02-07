@@ -136,7 +136,7 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
                         src={img}
                         alt={`grid-image-${index}`}
                         style={styles.gridImage}
-                        onClick={() => onImageClick(img)}
+                        onClick={() => onImageClick(images, index)}
                     />
                 </div>
             );
@@ -193,7 +193,7 @@ export const ImageGrid = ({ images, onImageClick, isTelegram }) => {
                 const singleImagePlaceholderStyle = {
                     width: '60px',
                     height: '60px',
-                    backgroundColor: '#f0f0f0',
+                    backgroundColor: 'var(--image-bg)',
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',

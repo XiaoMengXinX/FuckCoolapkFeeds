@@ -32,6 +32,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const [loadedImageIndices, setLoadedImageIndices] = useState(new Set());
     const [imageErrors, setImageErrors] = useState({}); // Track which images failed to load
     const [retryCounts, setRetryCounts] = useState({}); // Track retry counts for each image
+    const [finishedLoadingIndices, setFinishedLoadingIndices] = useState(new Set()); // Track which images finished loading (success or error)
     
     // 创建无限循环的图片数组：在前后各添加一张图片
     const infiniteImages = [images[images.length - 1], ...images, images[0]];
@@ -787,49 +788,85 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                                         </svg>
                                     </div>
                                 ) : (
-                                    <img
-                                        key={retryCount}
-                                        ref={(el) => {
-                                            if (el) {
-                                                imageRefs.current[index] = el;
-                                            }
-                                        }}
-                                        src={img}
-                                        alt={`Image ${index}`}
-                                        style={{
-                                            ...styles.lightboxImage,
-                                            transform: isCurrentImage
-                                                ? `scale(${scale}) translate(${imagePosition.x / scale}px, ${imagePosition.y / scale}px)`
-                                                : 'scale(1)',
-                                            transition: isPinching || isDraggingImage || isWheelScrolling ? 'none' : 'transform 0.3s ease',
-                                            cursor: scale > 1 ? 'move' : 'pointer',
-                                        }}
-                                        onLoad={(e) => {
-                                            if (isCurrentImage && e.target.offsetWidth > 0) {
-                                                // 只在尺寸变化时更新
-                                                const newWidth = e.target.offsetWidth;
-                                                const newHeight = e.target.offsetHeight;
-                                                if (newWidth !== actualImageSize.width || newHeight !== actualImageSize.height) {
-                                                    setActualImageSize({
-                                                        width: newWidth,
-                                                        height: newHeight
-                                                    });
-                                                }
-                                            }
-                                            // Clear error state on successful load
-                                            setImageErrors(prev => ({
-                                                ...prev,
-                                                [actualIndex]: false
-                                            }));
-                                        }}
-                                        onError={() => {
-                                            // Mark this image as failed
-                                            setImageErrors(prev => ({
-                                                ...prev,
-                                                [actualIndex]: true
-                                            }));
-                                        }}
-                                    />
+                                    (() => {
+                                        const isFinished = finishedLoadingIndices.has(actualIndex);
+                                        
+                                        return (
+                                            <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {!isFinished && !hasError && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        left: '50%',
+                                                        transform: 'translate(-50%, -50%)',
+                                                        zIndex: 1
+                                                    }}>
+                                                        <div style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            border: '3px solid rgba(255,255,255,0.3)',
+                                                            borderTop: '3px solid white',
+                                                            borderRadius: '50%',
+                                                            animation: 'spin 1s linear infinite',
+                                                        }} />
+                                                    </div>
+                                                )}
+                                                <img
+                                                    key={retryCount}
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            imageRefs.current[index] = el;
+                                                        }
+                                                    }}
+                                                    src={img}
+                                                    alt={`Image ${index}`}
+                                                    style={{
+                                                        ...styles.lightboxImage,
+                                                        display: hasError ? 'none' : 'block',
+                                                        opacity: isFinished ? 1 : 0,
+                                                        transition: 'opacity 0.3s ease',
+                                                        transform: isCurrentImage
+                                                            ? `scale(${scale}) translate(${imagePosition.x / scale}px, ${imagePosition.y / scale}px)`
+                                                            : 'scale(1)',
+                                                        transition: isPinching || isDraggingImage || isWheelScrolling ? 'none' : (isFinished ? 'transform 0.3s ease, opacity 0.3s ease' : 'none'),
+                                                        cursor: scale > 1 ? 'move' : 'pointer',
+                                                    }}
+                                                    onLoad={(e) => {
+                                                        setFinishedLoadingIndices(prev => {
+                                                            const next = new Set(prev);
+                                                            next.add(actualIndex);
+                                                            return next;
+                                                        });
+                                                        if (isCurrentImage && e.target.offsetWidth > 0) {
+                                                            const newWidth = e.target.offsetWidth;
+                                                            const newHeight = e.target.offsetHeight;
+                                                            if (newWidth !== actualImageSize.width || newHeight !== actualImageSize.height) {
+                                                                setActualImageSize({
+                                                                    width: newWidth,
+                                                                    height: newHeight
+                                                                });
+                                                            }
+                                                        }
+                                                        setImageErrors(prev => ({
+                                                            ...prev,
+                                                            [actualIndex]: false
+                                                        }));
+                                                    }}
+                                                    onError={() => {
+                                                        setFinishedLoadingIndices(prev => {
+                                                            const next = new Set(prev);
+                                                            next.add(actualIndex);
+                                                            return next;
+                                                        });
+                                                        setImageErrors(prev => ({
+                                                            ...prev,
+                                                            [actualIndex]: true
+                                                        }));
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    })()
                                 )
                             ) : (
                                 <div style={{
