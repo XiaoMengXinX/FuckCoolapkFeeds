@@ -27,6 +27,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const wheelRAFRef = useRef(null);
     const wheelScrollTimeoutRef = useRef(null);
     const lastTapTimeRef = useRef(0);
+    const lastDragTimeRef = useRef(0);
     const lastTapPosRef = useRef({ x: 0, y: 0 });
     
     const [loadedImageIndices, setLoadedImageIndices] = useState(new Set());
@@ -322,32 +323,51 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         resetZoom();
     };
 
+    const getCoords = (e) => {
+        if (e.touches && e.touches.length > 0) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        if (e.changedTouches && e.changedTouches.length > 0) {
+            return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
+    };
+
     const handleMouseDown = (e) => {
-        // PC端：如果图片已缩放，拖动图片
-        if (!isMobile && scale > 1) {
+        const { x, y } = getCoords(e);
+
+        // 如果是点击了图片且已缩放，则进入图片拖动（平移）模式
+        if (e.target.closest('img') && scale > 1) {
             setIsDraggingImage(true);
             setDragStartPos({
-                x: e.clientX - imagePosition.x,
-                y: e.clientY - imagePosition.y
+                x: x - imagePosition.x,
+                y: y - imagePosition.y
             });
             e.preventDefault();
             return;
         }
         
-        // 移动端：拖拽切换图片
-        if (isMobile) {
-            setIsDragging(true);
-            setStartX(e.clientX);
-            setDragOffset(0);
-            setIsTransitioning(false);
+        // 其他情况（点击背景，或在未缩放时点击图片），进入翻页拖拽模式
+        setIsDragging(true);
+        setStartX(x);
+        setDragOffset(0);
+        setIsTransitioning(false);
+        
+        // 防止 PC 端拖拽图片时触发浏览器默认行为（如拖动阴影）
+        if (!isMobile && e.target.tagName === 'IMG') {
+            e.preventDefault();
         }
     };
 
     const handleMouseMove = (e) => {
-        // PC端：拖动缩放后的图片
-        if (!isMobile && isDraggingImage && scale > 1) {
-            const newX = e.clientX - dragStartPos.x;
-            const newY = e.clientY - dragStartPos.y;
+        const { x, y } = getCoords(e);
+        const clientX = x;
+        const clientY = y;
+
+        // 拖动缩放后的图片
+        if (isDraggingImage && scale > 1) {
+            const newX = clientX - dragStartPos.x;
+            const newY = clientY - dragStartPos.y;
             
             // 应用边界限制
             const constrained = constrainPosition(newX, newY, scale);
@@ -355,29 +375,28 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             return;
         }
         
-        // 移动端：拖拽切换图片
-        if (isDragging && isMobile) {
-            const currentX = e.clientX;
-            const diffX = currentX - startX;
+        // 拖拽切换图片
+        if (isDragging) {
+            const diffX = clientX - startX;
             
-            // 计算拖拽偏移量（转换为百分比）
             const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
             const offsetPercent = (diffX / containerWidth) * 100;
             
-            // 实时更新位置，让图片跟随鼠标
             setDragOffset(offsetPercent);
         }
     };
 
-    const handleMouseUp = () => {
-        // PC端：停止拖动图片
-        if (!isMobile && isDraggingImage) {
+    const handleMouseUp = (e) => {
+        // 停止拖动图片
+        if (isDraggingImage) {
             setIsDraggingImage(false);
             return;
         }
         
-        // 移动端：处理切换图片
-        if (!isMobile) return;
+        // 处理切换图片
+        if (!isDragging) return;
+        
+        const wasDragging = isDragging;
         setIsDragging(false);
         
         // 计算拖拽距离
@@ -396,11 +415,17 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             }
         } else {
             // 拖拽距离不够，回弹到当前图片
-            setIsTransitioning(true);
-            setDragOffset(0);
-            setTimeout(() => {
-                setIsTransitioning(false);
-            }, 300);
+            if (dragOffset !== 0) {
+                // 如果位移超过一定阈值（虽然没到翻页阈值），记录为拖拽，防止误触发点击关闭
+                if (Math.abs(dragDistance) > 10) {
+                    lastDragTimeRef.current = Date.now();
+                }
+                setIsTransitioning(true);
+                setDragOffset(0);
+                setTimeout(() => {
+                    setIsTransitioning(false);
+                }, 300);
+            }
         }
     };
 
@@ -456,6 +481,9 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         
         // 检测双击
         if (e.touches.length === 1 && !isPinching) {
+            // 如果点击的是按钮，不触发双击放大逻辑
+            if (e.target.closest('button')) return;
+
             const now = Date.now();
             const tapX = e.touches[0].clientX;
             const tapY = e.touches[0].clientY;
@@ -506,14 +534,15 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         
         // 单指触摸
         if (e.touches.length === 1 && !isPinching) {
-            // 如果图片已缩放，拖动图片而不是切换
-            if (scale > 1) {
+            // 如果是点击了图片且已缩放，则进入图片拖动（平移）模式
+            if (e.target.closest('img') && scale > 1) {
                 setIsDraggingImage(true);
                 setDragStartPos({
                     x: e.touches[0].clientX - imagePosition.x,
                     y: e.touches[0].clientY - imagePosition.y
                 });
             } else {
+                // 其他情况，进入翻页拖拽模式
                 setIsDragging(true);
                 setStartX(e.touches[0].clientX);
                 setDragOffset(0);
@@ -608,7 +637,6 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             // 如果从双指变成单指，结束缩放状态但保持当前缩放和位置
             if (isPinching && e.touches.length === 1) {
                 setIsPinching(false);
-                // 不重置 initialPinchDistanceRef 等，因为可能还会继续操作
                 
                 // 如果缩放到1以下，重置位置
                 if (scale <= 1) {
@@ -651,6 +679,7 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             return;
         }
         
+        const wasDragging = isDragging;
         setIsDragging(false);
         
         // 计算拖拽距离
@@ -668,17 +697,64 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 goToPrevious();
             }
         } else {
-            // 拖拽距离不够，回弹到当前图片
-            setIsTransitioning(true);
-            setDragOffset(0);
-            setTimeout(() => {
-                setIsTransitioning(false);
-            }, 300);
+            // 如果没有明显的拖拽，且目标是背景或图片，则可能是点击
+            if (dragOffset === 0 && wasDragging) {
+                const now = Date.now();
+                if (now - lastTapTimeRef.current < 300) {
+                    // 这是正常的单次点击（不是双击的前奏，或者双击的第一下）
+                    // 延迟一小会，如果没有第二次点击，就看作是单次点击
+                    setTimeout(() => {
+                        const timeSinceLastTap = Date.now() - lastTapTimeRef.current;
+                        // 如果距离上次 handleDoubleTap 设置的 lastTapTimeRef.current = 0 比较远
+                        // 且没有新的点击发生，说明这就是一次普通的单击
+                        if (lastTapTimeRef.current !== 0 && timeSinceLastTap >= 300) {
+                            // 检查点击位置是否在空白处
+                            const touch = e.changedTouches[0];
+                            if (touch) {
+                                const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                                // 如果点击的是 slide 容器或 slider 或是已加载图片的容器（非图片本身）
+                                if (element && 
+                                    !element.closest('button') && 
+                                    !element.closest('img') && 
+                                    (
+                                        element.style.minWidth === '100%' || 
+                                        element.tagName === 'DIV'
+                                    )
+                                ) {
+                                    onClose();
+                                }
+                            }
+                        }
+                    }, 300);
+                }
+            }
+            
+            // 只有在位移非0时才触发回弹动画
+            if (dragOffset !== 0) {
+                // 记录拖拽，防止误点关闭
+                if (Math.abs(dragDistance) > 5) {
+                    lastDragTimeRef.current = Date.now();
+                }
+                setIsTransitioning(true);
+                setDragOffset(0);
+                setTimeout(() => {
+                    setIsTransitioning(false);
+                }, 300);
+            }
         }
     };
 
     const handleBackgroundClick = (e) => {
-        if (e.target === e.currentTarget) {
+        // 如果刚刚发生过拖拽，不触发点击关闭
+        if (Date.now() - lastDragTimeRef.current < 100) return;
+
+        // 如果点击的是图片本身或者各种按钮，不关闭
+        if (e.target.closest('img') || e.target.closest('button') || e.target.closest('svg')) {
+            return;
+        }
+
+        // 只有点击的是 DIV 或是容器本身才关闭（排除掉可能的交互元素）
+        if (e.target.tagName === 'DIV' || e.target === e.currentTarget) {
             onClose();
         }
     };
@@ -702,7 +778,10 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             {/* 关闭按钮 */}
             <button 
                 style={{...styles.lightboxCloseButton, top: '20px', right: '20px'}} 
-                onClick={onClose}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                }}
             >
                 ×
             </button>
@@ -712,13 +791,19 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 <>
                     <button 
                         style={{...styles.lightboxNavButton, left: '20px'}} 
-                        onClick={goToPrevious}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            goToPrevious();
+                        }}
                     >
                         ‹
                     </button>
                     <button
                         style={{...styles.lightboxNavButton, right: '20px'}}
-                        onClick={goToNext}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            goToNext();
+                        }}
                     >
                         ›
                     </button>
@@ -757,7 +842,11 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                         <div
                             key={index}
                             style={styles.lightboxSlide}
-                            onClick={handleBackgroundClick}
+                            onClick={(e) => {
+                                // 在 slide 层面处理点击，如果是点击背景则关闭
+                                handleBackgroundClick(e);
+                                e.stopPropagation();
+                            }}
                         >
                             {shouldLoad ? (
                                 hasError ? (
