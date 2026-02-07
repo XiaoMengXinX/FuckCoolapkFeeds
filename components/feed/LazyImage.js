@@ -93,15 +93,46 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
         };
     }, [imageSrc, enableLongImageCollapse]);
 
-    const handleImageLoad = () => {
+    const handleImageLoad = (e) => {
         setLoaded(true);
         setError(false);
         
-        // 确保在图片加载完成后立即检查并设置尺寸和长图状态
-        if (imageRef.current) {
-            const img = imageRef.current;
-            const width = img.naturalWidth;
-            const height = img.naturalHeight;
+        if (enableLongImageCollapse) {
+            const img = e.target;
+
+            if (img.offsetWidth > 0 && img.offsetHeight > 0) {
+                setImageSize({ width: img.offsetWidth, height: img.offsetHeight });
+                setDimensionsKnown(true);
+
+                if (img.offsetHeight / img.offsetWidth > LONG_IMAGE_RATIO) {
+                    setIsLongImage(true);
+                }
+                setImageDisplayWidth(`${img.offsetWidth}px`);
+                return;
+            }
+
+            const pollInterval = setInterval(() => {
+                const width = img.offsetWidth || img.naturalWidth;
+                const height = img.offsetHeight || img.naturalHeight;
+
+                if (width > 0 && height > 0) {
+                    clearInterval(pollInterval);
+                }
+
+                setImageSize({ width, height });
+                setDimensionsKnown(true);
+
+                if (enableLongImageCollapse && height / width > LONG_IMAGE_RATIO) {
+                    setIsLongImage(true);
+                }
+                setImageDisplayWidth(`${img.offsetWidth}px`);
+            }, 100);
+
+            setTimeout(() => clearInterval(pollInterval), 3000);
+        } else {
+            const img = e.target;
+            const width = img.offsetWidth || img.naturalWidth;
+            const height = img.offsetHeight || img.naturalHeight;
 
             if (width > 0 && height > 0) {
                 setImageSize({ width, height });
@@ -125,8 +156,6 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
         setError(false);
         setLoaded(false);
         setRetryCount(prev => prev + 1);
-        // Force reload by adding timestamp
-        setImageSrc(`${src}?retry=${retryCount + 1}`);
     };
 
     const handleToggleExpand = (e) => {
@@ -152,7 +181,8 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
             <div
                 ref={containerRef}
                 style={{
-                    ...style,
+                    width: style?.width,
+                    height: style?.height,
                     position: 'relative',
                     display: 'inline-block',
                 }}
@@ -168,7 +198,7 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            backgroundColor: '#f5f5f5',
+                            backgroundColor: 'var(--image-bg)',
                             borderRadius: '4px',
                         }}
                         className="compact-loading"
@@ -180,21 +210,25 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                     <div
                         onClick={handleRetry}
                         style={{
-                            ...style,
+                            width: '100%',
+                            height: '100%',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            backgroundColor: '#f5f5f5',
                             cursor: 'pointer',
+                            border: 'var(--image-border)',
+                            borderRadius: style?.borderRadius || '4px',
+                            backgroundColor: 'var(--image-bg)',
                         }}
                         className="preview-image-error"
                     >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#999' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--icon-color)' }}>
                             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                         </svg>
                     </div>
                 ) : (
                     <img
+                        key={retryCount}
                         ref={imageRef}
                         src={imageSrc}
                         alt={alt}
@@ -223,7 +257,7 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                 minHeight: isLongImage && !isExpanded ? 'auto' : '50px',
             }}
         >
-            {!loaded && imageSrc && (
+            {!loaded && imageSrc && !error && (
                 <div
                     className="lazy-image-loading"
                     style={{
@@ -267,13 +301,13 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            backgroundColor: '#f5f5f5',
+                            backgroundColor: 'var(--image-bg)',
                             cursor: 'pointer',
                             borderRadius: '4px',
                         }}
                         className="image-error-container"
                     >
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#999' }}>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--icon-color)' }}>
                             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                         </svg>
                     </div>

@@ -465,6 +465,6 @@ export const styles = {
         height: '60px',
         objectFit: 'cover',
         borderRadius: '4px',
-        border: '1px solid #ddd',
+        border: 'var(--image-border)',
     },
 };

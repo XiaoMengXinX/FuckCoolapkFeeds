@@ -30,6 +30,8 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const lastTapPosRef = useRef({ x: 0, y: 0 });
     
     const [loadedImageIndices, setLoadedImageIndices] = useState(new Set());
+    const [imageErrors, setImageErrors] = useState({}); // Track which images failed to load
+    const [retryCounts, setRetryCounts] = useState({}); // Track retry counts for each image
     
     // 创建无限循环的图片数组：在前后各添加一张图片
     const infiniteImages = [images[images.length - 1], ...images, images[0]];
@@ -747,6 +749,8 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                     
                     // 判断是否应该加载这张图片
                     const shouldLoad = loadedImageIndices.has(actualIndex);
+                    const hasError = imageErrors[actualIndex];
+                    const retryCount = retryCounts[actualIndex] || 0;
                     
                     return (
                         <div
@@ -755,36 +759,78 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                             onClick={handleBackgroundClick}
                         >
                             {shouldLoad ? (
-                                <img
-                                    ref={(el) => {
-                                        if (el) {
-                                            imageRefs.current[index] = el;
-                                        }
-                                    }}
-                                    src={img}
-                                    alt={`Image ${index}`}
-                                    style={{
-                                        ...styles.lightboxImage,
-                                        transform: isCurrentImage
-                                            ? `scale(${scale}) translate(${imagePosition.x / scale}px, ${imagePosition.y / scale}px)`
-                                            : 'scale(1)',
-                                        transition: isPinching || isDraggingImage || isWheelScrolling ? 'none' : 'transform 0.3s ease',
-                                        cursor: scale > 1 ? 'move' : 'pointer',
-                                    }}
-                                    onLoad={(e) => {
-                                        if (isCurrentImage && e.target.offsetWidth > 0) {
-                                            // 只在尺寸变化时更新
-                                            const newWidth = e.target.offsetWidth;
-                                            const newHeight = e.target.offsetHeight;
-                                            if (newWidth !== actualImageSize.width || newHeight !== actualImageSize.height) {
-                                                setActualImageSize({
-                                                    width: newWidth,
-                                                    height: newHeight
-                                                });
+                                hasError ? (
+                                    // Error state with retry button
+                                    <div
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Retry loading
+                                            setImageErrors(prev => ({
+                                                ...prev,
+                                                [actualIndex]: false
+                                            }));
+                                            setRetryCounts(prev => ({
+                                                ...prev,
+                                                [actualIndex]: (prev[actualIndex] || 0) + 1
+                                            }));
+                                        }}
+                                        style={{
+                                            ...styles.lightboxImage,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--icon-color)' }}>
+                                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                                        </svg>
+                                    </div>
+                                ) : (
+                                    <img
+                                        key={retryCount}
+                                        ref={(el) => {
+                                            if (el) {
+                                                imageRefs.current[index] = el;
                                             }
-                                        }
-                                    }}
-                                />
+                                        }}
+                                        src={img}
+                                        alt={`Image ${index}`}
+                                        style={{
+                                            ...styles.lightboxImage,
+                                            transform: isCurrentImage
+                                                ? `scale(${scale}) translate(${imagePosition.x / scale}px, ${imagePosition.y / scale}px)`
+                                                : 'scale(1)',
+                                            transition: isPinching || isDraggingImage || isWheelScrolling ? 'none' : 'transform 0.3s ease',
+                                            cursor: scale > 1 ? 'move' : 'pointer',
+                                        }}
+                                        onLoad={(e) => {
+                                            if (isCurrentImage && e.target.offsetWidth > 0) {
+                                                // 只在尺寸变化时更新
+                                                const newWidth = e.target.offsetWidth;
+                                                const newHeight = e.target.offsetHeight;
+                                                if (newWidth !== actualImageSize.width || newHeight !== actualImageSize.height) {
+                                                    setActualImageSize({
+                                                        width: newWidth,
+                                                        height: newHeight
+                                                    });
+                                                }
+                                            }
+                                            // Clear error state on successful load
+                                            setImageErrors(prev => ({
+                                                ...prev,
+                                                [actualIndex]: false
+                                            }));
+                                        }}
+                                        onError={() => {
+                                            // Mark this image as failed
+                                            setImageErrors(prev => ({
+                                                ...prev,
+                                                [actualIndex]: true
+                                            }));
+                                        }}
+                                    />
+                                )
                             ) : (
                                 <div style={{
                                     ...styles.lightboxImage,
