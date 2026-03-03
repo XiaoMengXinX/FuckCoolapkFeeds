@@ -4,6 +4,15 @@ import { LazyImage } from './LazyImage';
 import { processCoolapkEmoji } from '../../lib/emojiProcessor';
 import { timeAgo } from '../../lib/dateUtils';
 
+// Renders relative time client-side only, using the browser's local timezone.
+function ClientTimeAgo({ ts }) {
+    const [text, setText] = useState('');
+    useEffect(() => {
+        setText(timeAgo(ts));
+    }, [ts]);
+    return <span suppressHydrationWarning>{text}</span>;
+}
+
 export function stripHtml(html) {
     if (!html) return '';
     // Replace <a> tags with styled spans to keep link text visible/colored
@@ -97,7 +106,7 @@ export const FeedCard = ({ feed }) => {
                         <span className="hl-username">{feed.username}</span>
                     </div>
                     <div className="hl-sub-info">
-                        <span className="hl-time">{timeAgo(feed.dateline)}</span>
+                        <span className="hl-time"><ClientTimeAgo ts={feed.dateline} /></span>
                         {feed.device_title && (
                             <>
                                 <span className="hl-dot">·</span>
