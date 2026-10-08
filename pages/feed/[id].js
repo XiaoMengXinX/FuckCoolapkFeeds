@@ -112,7 +112,7 @@ const FeedPage = ({ feed, error, id, aiSummary, adClient, adSlot }) => {
                 </div>
             )}
             {aiSummary && (
-                <AISummary summary={aiSummary} />
+                <AISummary summary={aiSummary.text} model={aiSummary.model} />
             )}
             <div style={styles.content}>
                 <FeedContent

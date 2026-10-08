@@ -1,6 +1,4 @@
-import { styles } from '../../styles/feedStyles';
-
-const AISummary = ({ summary }) => {
+const AISummary = ({ summary, model }) => {
     if (!summary) {
         return null;
     }
@@ -8,8 +6,11 @@ const AISummary = ({ summary }) => {
     return (
         <div style={summaryStyles.container}>
             <div style={summaryStyles.header}>
-                <span style={summaryStyles.icon}>✨</span>
-                <span style={summaryStyles.title}>AI 摘要</span>
+                <div style={summaryStyles.heading}>
+                    <span style={summaryStyles.icon}>✨</span>
+                    <span style={summaryStyles.title}>AI 摘要</span>
+                </div>
+                <span style={summaryStyles.model}>{model}</span>
             </div>
             <div style={summaryStyles.content}>
                 {summary}
@@ -32,10 +33,17 @@ const summaryStyles = {
     header: {
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
         marginBottom: '8px',
         fontSize: '14px',
         fontWeight: '600',
         color: 'var(--ai-summary-header-color)',
+    },
+    heading: {
+        display: 'flex',
+        alignItems: 'center',
+        flexShrink: 0,
     },
     icon: {
         marginRight: '6px',
@@ -44,6 +52,13 @@ const summaryStyles = {
     title: {
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
+    },
+    model: {
+        fontSize: '12px',
+        fontWeight: '400',
+        textAlign: 'right',
+        overflowWrap: 'anywhere',
+        color: 'var(--ai-summary-disclaimer-color)',
     },
     content: {
         fontSize: '15px',
