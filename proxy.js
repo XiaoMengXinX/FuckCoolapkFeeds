@@ -1,5 +1,21 @@
 import { NextResponse } from 'next/server';
 
+function redirectToPath(request, url) {
+  // Prefer the original public host provided by a reverse proxy. Some tunnel
+  // setups replace Host with localhost:60080, which must never reach visitors.
+  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0].trim();
+  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0].trim();
+  const isLocalHost = forwardedHost && /^(localhost|127(?:\.\d{1,3}){3}|\[::1\])(?::\d+)?$/i.test(forwardedHost);
+  const origin = forwardedHost && !isLocalHost
+    ? `${forwardedProto || 'https'}://${forwardedHost}`
+    : process.env.NODE_ENV === 'development'
+      ? request.nextUrl.origin
+      : 'https://www.coolapk1s.com';
+
+  const destination = new URL(`${url.pathname}${url.search}`, origin);
+  return NextResponse.redirect(destination, 301);
+}
+
 export function proxy(request) {
   const { pathname, search } = request.nextUrl;
 
@@ -40,7 +56,7 @@ export function proxy(request) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
       url.search = '';
-      return NextResponse.redirect(url, 301);
+      return redirectToPath(request, url);
     }
 
     let needsRedirect = false;
@@ -61,7 +77,7 @@ export function proxy(request) {
       url.pathname = `/${routeType}/${normalizedId}`;
       url.search = '';
 
-      return NextResponse.redirect(url, 301);
+      return redirectToPath(request, url);
     }
   }
 
@@ -69,7 +85,7 @@ export function proxy(request) {
   if (otherPagesMatch && search) {
     const url = request.nextUrl.clone();
     url.search = '';
-    return NextResponse.redirect(url, 301);
+    return redirectToPath(request, url);
   }
 
   return NextResponse.next();
