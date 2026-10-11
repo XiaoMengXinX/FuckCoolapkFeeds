@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-function redirectToPath(request, url) {
+function redirectToPath(request, url, status = 301) {
   // Prefer the original public host provided by a reverse proxy. Some tunnel
   // setups replace Host with localhost:60080, which must never reach visitors.
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0].trim();
@@ -13,7 +13,7 @@ function redirectToPath(request, url) {
       : 'https://www.coolapk1s.com';
 
   const destination = new URL(`${url.pathname}${url.search}`, origin);
-  return NextResponse.redirect(destination, 301);
+  return NextResponse.redirect(destination, status);
 }
 
 export function proxy(request) {
@@ -50,6 +50,18 @@ export function proxy(request) {
 
   if (pathMatch) {
     const [, routeType, id] = pathMatch;
+
+    // Preserve the Vercel redirects for Telegram and archive.org clients.
+    if (routeType === 'feed' || routeType === 'picture') {
+      const userAgent = request.headers.get('user-agent') || '';
+      const via = request.headers.get('via') || '';
+      if (/(telegram|archive\.org)/i.test(userAgent) || /archive\.org/i.test(via)) {
+        const url = request.nextUrl.clone();
+        url.pathname = `/iv/${id}`;
+        return redirectToPath(request, url, 307);
+      }
+    }
+
     const idAsNumber = parseInt(id, 10);
 
     if (isNaN(idAsNumber) || idAsNumber.toString() !== id.replace(/^0+/, '')) {
@@ -79,6 +91,15 @@ export function proxy(request) {
 
       return redirectToPath(request, url);
     }
+
+    // Vercel's /picture/:id rewrite is not applied by a self-hosted Next.js
+    // server. Redirect to the existing feed page instead of proxying back to
+    // the internal localhost origin.
+    if (routeType === 'picture') {
+      const url = request.nextUrl.clone();
+      url.pathname = `/feed/${normalizedId}`;
+      return redirectToPath(request, url, 307);
+    }
   }
 
   const otherPagesMatch = pathname === '/' || pathname.match(/^\/(headlines|t|reply)\/.*$/);
@@ -88,16 +109,17 @@ export function proxy(request) {
     return redirectToPath(request, url);
   }
 
+  // Match the Vercel catch-all redirect for paths outside the app's reserved
+  // prefixes. Keep the path and query string when sending the visitor to Coolapk.
+  const isVercelReservedPath = /^\/(api|feed|iv|reply|headlines|t|_next|picture)/.test(pathname);
+  if (pathname !== '/' && !isVercelReservedPath) {
+    const destination = new URL(`${pathname}${search}`, 'https://www.coolapk.com');
+    return NextResponse.redirect(destination, 307);
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    '/feed/:id*',
-    '/picture/:id*',
-    '/iv/:id*',
-    '/headlines/:page*',
-    '/t/:tag*',
-    '/reply/:id*',
-  ],
+  matcher: ['/:path*'],
 };

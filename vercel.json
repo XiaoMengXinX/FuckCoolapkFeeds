@@ -4,40 +4,5 @@
       "ENABLE_ROOT_PATH_BUILD_CACHE": "1"
     }
   },
-  "installCommand": "npm install",
-  "rewrites": [
-    {
-      "source": "/picture/:id",
-      "destination": "/feed/:id"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/(feed|picture)/:id",
-      "has": [
-        {
-          "type": "header",
-          "key": "User-Agent",
-          "value": ".*(Telegram|archive\\.org).*"
-        }
-      ],
-      "destination": "/iv/:id"
-    },
-    {
-      "source": "/(feed|picture)/:id",
-      "has": [
-        {
-          "type": "header",
-          "key": "Via",
-          "value": ".*archive\\.org.*"
-        }
-      ],
-      "destination": "/iv/:id"
-    },
-    {
-      "source": "/((?!api|feed|iv|reply|headlines|t|_next|picture).+)",
-      "destination": "https://www.coolapk.com/$1",
-      "permanent": false
-    }
-  ]
+  "installCommand": "npm install"
 }
