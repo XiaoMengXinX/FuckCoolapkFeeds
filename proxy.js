@@ -111,7 +111,7 @@ export function proxy(request) {
 
   // Match the Vercel catch-all redirect for paths outside the app's reserved
   // prefixes. Keep the path and query string when sending the visitor to Coolapk.
-  const isVercelReservedPath = /^\/(api|feed|iv|reply|headlines|t|_next|picture)/.test(pathname);
+  const isVercelReservedPath = /^\/(?:api|feed|iv|reply|headlines|t|_next|picture)(?:\/|$)/.test(pathname);
   if (pathname !== '/' && !isVercelReservedPath) {
     const destination = new URL(`${pathname}${search}`, 'https://www.coolapk.com');
     return NextResponse.redirect(destination, 307);
