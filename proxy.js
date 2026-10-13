@@ -51,11 +51,11 @@ export function proxy(request) {
   if (pathMatch) {
     const [, routeType, id] = pathMatch;
 
-    // Preserve the Vercel redirects for Telegram and archive.org clients.
+    // Preserve the Vercel redirects for Telegram and Internet Archive clients.
     if (routeType === 'feed' || routeType === 'picture') {
       const userAgent = request.headers.get('user-agent') || '';
       const via = request.headers.get('via') || '';
-      if (/(telegram|archive\.org)/i.test(userAgent) || /archive\.org/i.test(via)) {
+      if (/(telegram|archive\.org|ia_archiver)/i.test(userAgent) || /archive\.org/i.test(via)) {
         const url = request.nextUrl.clone();
         url.pathname = `/iv/${id}`;
         return redirectToPath(request, url, 307);
