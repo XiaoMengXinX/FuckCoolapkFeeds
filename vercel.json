@@ -35,7 +35,7 @@
       "destination": "/iv/:id"
     },
     {
-      "source": "/((?!api|feed|iv|reply|headlines|t|_next|picture).+)",
+      "source": "/((?!api(?:/|$)|feed(?:/|$)|iv(?:/|$)|reply(?:/|$)|headlines(?:/|$)|t(?:/|$)|_next(?:/|$)|picture(?:/|$)).+)",
       "destination": "https://www.coolapk.com/$1",
       "permanent": false
     }
