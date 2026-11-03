@@ -1,51 +1,30 @@
 import { LazyImage } from './LazyImage';
-import { proxyImage } from '../../lib/imageProxy';
+import { proxyImage, proxyPreviewImage } from '../../lib/imageProxy';
+import { styles } from '../../styles/feedStyles';
 
-/**
- * ProductAlbumCard component for displaying product goods information
- * Renders product cards with ranking badge, thumbnail, title, specs, and preview images
- */
-const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
+const RANK_LABELS = {
+    1: '夯',
+    2: '顶级',
+    3: '人上人',
+    4: 'NPC',
+    5: '拉',
+};
+
+const getRankColor = (level) => `var(--rank-color-${level >= 1 && level <= 4 ? level : 5})`;
+
+const parseImages = (imageString) => {
+    if (!imageString) return [];
+    return imageString.split(',').filter(url => url.trim());
+};
+
+const ProductAlbumCard = ({ goods, onImageClick }) => {
     if (!goods || goods.length === 0) return null;
 
-    // Ranking badge colors based on tier (level field)
-    // Using CSS variables to support dark mode
-    const getRankColor = (level) => {
-        if (level === 1) return 'var(--rank-color-1)'; // 夯 - Red
-        if (level === 2) return 'var(--rank-color-2)'; // 顶级 - Orange
-        if (level === 3) return 'var(--rank-color-3)'; // 人上人 - Yellow
-        if (level === 4) return 'var(--rank-color-4)'; // NPC - Green
-        return 'var(--rank-color-5)'; // 拉 - Gray
-    };
-
-    // Ranking labels based on level
-    const getRankLabel = (level) => {
-        const labels = {
-            1: '夯',
-            2: '顶级',
-            3: '人上人',
-            4: 'NPC',
-            5: '拉'
-        };
-        return labels[level] || null;
-    };
-
-    // Parse item_images string to array
-    const parseImages = (imageString) => {
-        if (!imageString) return [];
-        return imageString.split(',').filter(url => url.trim());
-    };
-
-    // Group items by level
     const groupedByLevel = goods.reduce((acc, item) => {
-        if (!acc[item.level]) {
-            acc[item.level] = [];
-        }
-        acc[item.level].push(item);
+        (acc[item.level] ||= []).push(item);
         return acc;
     }, {});
 
-    // Sort levels (1, 2, 3, 4, 5)
     const sortedLevels = Object.keys(groupedByLevel).sort((a, b) => Number(a) - Number(b));
 
     return (
@@ -53,14 +32,13 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
             {sortedLevels.map((level) => {
                 const items = groupedByLevel[level];
                 const levelColor = getRankColor(Number(level));
-                const rankLabel = getRankLabel(Number(level));
+                const rankLabel = RANK_LABELS[level];
                 
                 return (
                     <div key={level} style={{
                         ...styles.goodsLevelGroup,
                         borderColor: levelColor,
                     }}>
-                        {/* Left ranking badge for entire group - only show if label exists */}
                         {rankLabel && (
                             <div 
                                 className="product-rank-badge"
@@ -75,11 +53,12 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                             </div>
                         )}
 
-                        {/* Items container */}
                         <div style={styles.goodsItemsContainer}>
                             {items.map((item, index) => {
                                 const images = parseImages(item.item_images);
                                 const isFirst = index === 0;
+                                const logoImages = item.item_logo ? [proxyImage(item.item_logo)] : [];
+                                const lightboxImages = [...logoImages, ...images.map(url => proxyImage(url))];
                                 
                                 return (
                                     <div 
@@ -90,7 +69,6 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                                             borderTop: isFirst ? 'none' : '1px solid var(--product-card-border)',
                                         }}
                                     >
-                                        {/* Product thumbnail */}
                                         <div 
                                             className="product-thumbnail-container"
                                             style={{
@@ -99,15 +77,13 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                                             }}
                                             onClick={() => {
                                                 if (onImageClick && item.item_logo) {
-                                                    // Show item_logo first, then item_images
-                                                    const allImages = [proxyImage(item.item_logo), ...images.map(url => proxyImage(url))];
-                                                    onImageClick(allImages, 0);
+                                                    onImageClick(lightboxImages, 0);
                                                 }
                                             }}
                                         >
                                             {item.item_logo ? (
                                                 <LazyImage
-                                                    src={proxyImage(item.item_logo)}
+                                                    src={proxyImage(item.item_logo, 's')}
                                                     alt={item.item_name}
                                                     style={styles.goodsThumbnail}
                                                 />
@@ -130,25 +106,21 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                                             )}
                                         </div>
 
-                                        {/* Product info */}
                                         <div style={styles.goodsInfo}>
-                                            {/* Title */}
                                             <h3 style={styles.goodsTitle}>{item.item_name}</h3>
 
-                                            {/* Description/Specs */}
                                             {item.item_description && (
                                                 <div style={styles.goodsSpecs}>
                                                     {item.item_description}
                                                 </div>
                                             )}
 
-                                            {/* Product images preview */}
                                             {images.length > 0 && (
                                                 <div style={styles.goodsImagePreview}>
                                                     {images.slice(0, 3).map((img, idx) => (
                                                         <LazyImage
                                                             key={idx}
-                                                            src={proxyImage(img)}
+                                                            src={proxyPreviewImage(img)}
                                                             alt={`${item.item_name}-${idx}`}
                                                             compact={true}
                                                             style={{
@@ -157,9 +129,7 @@ const ProductAlbumCard = ({ goods, rankIndex, styles, onImageClick }) => {
                                                             }}
                                                             onClick={() => {
                                                                 if (onImageClick) {
-                                                                    // Include item_logo as first image, then all item_images
-                                                                    const allImages = [proxyImage(item.item_logo), ...images.map(url => proxyImage(url))];
-                                                                    onImageClick(allImages, idx + 1); // +1 because item_logo is at index 0
+                                                                    onImageClick(lightboxImages, logoImages.length + idx);
                                                                 }
                                                             }}
                                                         />

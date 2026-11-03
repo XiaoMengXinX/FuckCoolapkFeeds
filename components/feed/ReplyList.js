@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { proxyImage } from '../../lib/imageProxy';
+import { proxyImage, proxyPreviewImage } from '../../lib/imageProxy';
 import { processCoolapkEmoji } from '../../lib/emojiProcessor';
 import { formatDate } from '../../lib/dateUtils';
 import { LazyImage } from './LazyImage';
 
-// Renders a date client-side only, using the browser's local timezone.
-// On the server, renders empty to avoid SSR/client timezone mismatch.
 function ClientDate({ ts }) {
     const [text, setText] = useState('');
     useEffect(() => {
@@ -14,18 +12,21 @@ function ClientDate({ ts }) {
     return <span suppressHydrationWarning>{text}</span>;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const postToParent = (message) => {
+    if (window.parent !== window) {
+        window.parent.postMessage(message, window.location.origin);
+    }
+};
+
+const getReplyPics = (item) => item.picArr?.length ? item.picArr : (item.pic ? [item.pic] : []);
 
 function processContent(text) {
     let html = processCoolapkEmoji(text);
-    if (!html) return html || '';
+    if (!html) return '';
 
     const viewMorePattern = /<a\s+href="\/feed\/replyList\?id=\d+">查看更多<\/a>/g;
     html = html.replace(viewMorePattern, '<span class="reply-truncated">（完整评论请到客户端查看）</span>');
 
-    // Replace <a> tags with styled <span> to keep the link color but remove clickability
     html = html.replace(/<a\b[^>]*>(.*?)<\/a>/g, '<span class="reply-link">$1</span>');
 
     return html
@@ -34,38 +35,34 @@ function processContent(text) {
         .replace(/vertical-align:\s*middle/g, 'vertical-align:-0.22em');
 }
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
+// Image-only replies carry a "[图片]" placeholder message that should not be shown.
+const getMessageHtml = (item) =>
+    item.message === '[图片]' && getReplyPics(item).length > 0 ? '' : processContent(item.message);
 
-function ReplyRowImage({ pic, picArr, idx }) {
-    const proxied = proxyImage(pic);
-    const proxiedArr = picArr ? picArr.map(p => proxyImage(p)) : [proxied];
-
-    const handleClick = () => {
-        if (typeof window !== 'undefined' && window.parent !== window) {
-            window.parent.postMessage({ type: 'image-click', images: proxiedArr, index: idx }, '*');
-        }
-    };
+function ReplyPics({ pics, className }) {
+    if (pics.length === 0) return null;
+    const fullImages = pics.map(url => proxyImage(url));
 
     return (
-        <div className="reply-img-wrap">
-            <LazyImage
-                compact
-                src={proxied}
-                alt="comment pic"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block', cursor: 'pointer' }}
-                onClick={handleClick}
-            />
+        <div className={className}>
+            {pics.map((pic, index) => (
+                <div key={index} className="reply-img-wrap">
+                    <LazyImage
+                        compact
+                        src={proxyPreviewImage(pic)}
+                        alt="comment pic"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block', cursor: 'pointer' }}
+                        onClick={() => postToParent({ type: 'image-click', images: fullImages, index })}
+                    />
+                </div>
+            ))}
         </div>
     );
 }
 
 function ReplyRow({ r, authorUid }) {
-    const isImgOnly = r.message === '[图片]' && (r.picArr?.length || r.pic);
-    const msgHtml = isImgOnly ? '' : processContent(r.message);
+    const msgHtml = getMessageHtml(r);
     const isTargetAuthor = authorUid && r.ruid === authorUid;
-    const pics = r.picArr?.length ? r.picArr : (r.pic ? [r.pic] : []);
 
     return (
         <div className="reply-row">
@@ -88,13 +85,7 @@ function ReplyRow({ r, authorUid }) {
                         />
                     )}
                 </div>
-                {pics.length > 0 && (
-                    <div className="reply-row-pics">
-                        {pics.map((pic, idx) => (
-                            <ReplyRowImage key={idx} pic={pic} picArr={pics} idx={idx} />
-                        ))}
-                    </div>
-                )}
+                <ReplyPics pics={getReplyPics(r)} className="reply-row-pics" />
                 <div className="reply-row-date"><ClientDate ts={r.dateline} /></div>
             </div>
         </div>
@@ -102,21 +93,11 @@ function ReplyRow({ r, authorUid }) {
 }
 
 function ReplyCard({ reply, isLast }) {
-    const isImgOnly = reply.message === '[图片]' && (reply.picArr?.length || reply.pic);
-    const msgHtml = isImgOnly ? '' : processContent(reply.message);
+    const msgHtml = getMessageHtml(reply);
     const authorUid = reply.feedUid;
-    const pics = reply.picArr?.length ? reply.picArr : (reply.pic ? [reply.pic] : []);
-    const proxiedPics = pics.map(p => proxyImage(p));
-
-    const handleImgClick = (index) => {
-        if (typeof window !== 'undefined' && window.parent !== window) {
-            window.parent.postMessage({ type: 'image-click', images: proxiedPics, index }, '*');
-        }
-    };
 
     return (
         <div className={`reply-card${isLast ? ' reply-card-last' : ''}`}>
-            {/* Header */}
             <div className="reply-card-header">
                 <LazyImage
                     compact
@@ -152,7 +133,6 @@ function ReplyCard({ reply, isLast }) {
                 </div>
             </div>
 
-            {/* Body */}
             <div className="reply-card-body">
                 {msgHtml && (
                     <div
@@ -160,21 +140,7 @@ function ReplyCard({ reply, isLast }) {
                         dangerouslySetInnerHTML={{ __html: msgHtml }}
                     />
                 )}
-                {pics.length > 0 && (
-                    <div className="reply-pics">
-                        {pics.map((pic, idx) => (
-                            <div key={idx} className="reply-img-wrap">
-                                <LazyImage
-                                    compact
-                                    src={proxyImage(pic)}
-                                    alt="comment pic"
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block', cursor: 'pointer' }}
-                                    onClick={() => handleImgClick(idx)}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <ReplyPics pics={getReplyPics(reply)} className="reply-pics" />
                 {reply.replyRows?.length > 0 && (
                     <div className="reply-nested">
                         {reply.replyRows.map((r, i) => (
@@ -189,10 +155,6 @@ function ReplyCard({ reply, isLast }) {
         </div>
     );
 }
-
-// ---------------------------------------------------------------------------
-// Main exported component
-// ---------------------------------------------------------------------------
 
 export const ReplyListStyles = `
 .reply-list-root {
@@ -364,14 +326,8 @@ export const ReplyListStyles = `
 `;
 
 export default function ReplyList({ replies }) {
-    // Report height changes to parent frame
     useEffect(() => {
-        function reportHeight() {
-            if (typeof window !== 'undefined' && window.parent !== window) {
-                const h = document.body.offsetHeight;
-                window.parent.postMessage({ type: 'reply-height', height: h }, '*');
-            }
-        }
+        const reportHeight = () => postToParent({ type: 'reply-height', height: document.body.offsetHeight });
 
         reportHeight();
         window.addEventListener('load', reportHeight);
@@ -384,8 +340,6 @@ export default function ReplyList({ replies }) {
             ro.disconnect();
         };
     }, [replies]);
-
-    if (!replies) return null;
 
     if (replies.length === 0) {
         return (

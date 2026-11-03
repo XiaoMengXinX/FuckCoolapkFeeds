@@ -1,104 +1,44 @@
 import { useEffect, useState, useRef } from 'react';
 
-export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = false, compact = false }) => {
+const LONG_IMAGE_RATIO = 3;
+const COLLAPSED_HEIGHT = 400;
+
+// `size` is the intrinsic { width, height } when known; it reserves layout space before the image loads.
+export const LazyImage = ({ src, alt, style, onClick, size, enableLongImageCollapse = false, compact = false }) => {
     const [imageSrc, setImageSrc] = useState(null);
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
-    const [isLongImage, setIsLongImage] = useState(false);
+    const [isLongImage, setIsLongImage] = useState(
+        () => Boolean(enableLongImageCollapse && size && size.height / size.width > LONG_IMAGE_RATIO)
+    );
     const [isExpanded, setIsExpanded] = useState(false);
-    const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-    const [dimensionsKnown, setDimensionsKnown] = useState(false);
     const [imageDisplayWidth, setImageDisplayWidth] = useState('100%');
     const imageRef = useRef(null);
     const containerRef = useRef(null);
 
-    // 长图阈值：高度/宽度 > 3
-    const LONG_IMAGE_RATIO = 3;
-    const COLLAPSED_HEIGHT = 400; // 折叠时显示的高度
-
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        setImageSrc(src);
-                        observer.unobserve(entry.target);
-                    }
-                });
+                if (entries.some(entry => entry.isIntersecting)) {
+                    setImageSrc(src);
+                    observer.disconnect();
+                }
             },
-            {
-                rootMargin: '200px', // Preload images 200px before they enter the viewport
-            }
+            { rootMargin: '200px' }
         );
 
         if (containerRef.current) {
             observer.observe(containerRef.current);
         }
-
-        return () => {
-            if (containerRef.current) {
-                observer.unobserve(containerRef.current);
-            }
-        };
+        return () => observer.disconnect();
     }, [src]);
 
-    // 使用轮询来尽早检测图片尺寸
     useEffect(() => {
-        if (!imageRef.current || !imageSrc) return;
-
-        const img = imageRef.current;
-        let pollInterval;
-
-        const checkDimensions = () => {
-            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                const width = img.naturalWidth;
-                const height = img.naturalHeight;
-
-                setImageSize({ width, height });
-                setDimensionsKnown(true);
-
-                // 判断是否为长图（仅在启用长图折叠时）
-                if (enableLongImageCollapse && height / width > LONG_IMAGE_RATIO) {
-                    setIsLongImage(true);
-
-                    // 立即获取图片显示宽度
-                    if (img.offsetWidth > 0) {
-                        setImageDisplayWidth(`${img.offsetWidth}px`);
-                    }
-                }
-
-                // 清除轮询
-                if (pollInterval) {
-                    clearInterval(pollInterval);
-                }
-
-                return true;
-            }
-            return false;
-        };
-
-        // 立即检查（可能图片已经从缓存加载）
-        if (!checkDimensions()) {
-            // 如果立即检查失败，开始轮询（每10ms检查一次）
-            pollInterval = setInterval(() => {
-                checkDimensions();
-            }, 10);
-        }
-
-        return () => {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-            }
-        };
-    }, [imageSrc, enableLongImageCollapse]);
-
-    // 使用 ResizeObserver 实时追踪实际渲染出的图片宽度 (解决由于 maxHeight 更新导致的长图阴影宽度不匹配问题)
-    useEffect(() => {
-        if (!imageRef.current) return;
+        if (!isLongImage || !imageRef.current) return;
 
         const resizeObserver = new ResizeObserver(entries => {
-            for (let entry of entries) {
+            for (const entry of entries) {
                 if (entry.target.offsetWidth > 0) {
                     setImageDisplayWidth(`${entry.target.offsetWidth}px`);
                 }
@@ -106,63 +46,24 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
         });
 
         resizeObserver.observe(imageRef.current);
-        return () => {
-            resizeObserver.disconnect();
-        };
-    }, [loaded]);
+        return () => resizeObserver.disconnect();
+    }, [isLongImage, loaded, retryCount]);
 
     const handleImageLoad = (e) => {
         setLoaded(true);
         setError(false);
-
-        if (enableLongImageCollapse) {
-            const img = e.target;
-
-            if (img.offsetWidth > 0 && img.offsetHeight > 0) {
-                setImageSize({ width: img.offsetWidth, height: img.offsetHeight });
-                setDimensionsKnown(true);
-
-                if (img.offsetHeight / img.offsetWidth > LONG_IMAGE_RATIO) {
-                    setIsLongImage(true);
-                }
-                setImageDisplayWidth(`${img.offsetWidth}px`);
-                return;
-            }
-
-            const pollInterval = setInterval(() => {
-                const width = img.offsetWidth || img.naturalWidth;
-                const height = img.offsetHeight || img.naturalHeight;
-
-                if (width > 0 && height > 0) {
-                    clearInterval(pollInterval);
-                }
-
-                setImageSize({ width, height });
-                setDimensionsKnown(true);
-
-                if (enableLongImageCollapse && height / width > LONG_IMAGE_RATIO) {
-                    setIsLongImage(true);
-                }
-                setImageDisplayWidth(`${img.offsetWidth}px`);
-            }, 100);
-
-            setTimeout(() => clearInterval(pollInterval), 3000);
-        } else {
-            const img = e.target;
-            const width = img.offsetWidth || img.naturalWidth;
-            const height = img.offsetHeight || img.naturalHeight;
-
-            if (width > 0 && height > 0) {
-                setImageSize({ width, height });
-                setDimensionsKnown(true);
-
-                if (enableLongImageCollapse && height / width > LONG_IMAGE_RATIO) {
-                    setIsLongImage(true);
-                }
-                setImageDisplayWidth(`${img.offsetWidth}px`);
-            }
+        const { naturalWidth, naturalHeight } = e.target;
+        if (enableLongImageCollapse && !size && naturalWidth && naturalHeight / naturalWidth > LONG_IMAGE_RATIO) {
+            setIsLongImage(true);
         }
     };
+
+    // Width is capped so that the caller's maxHeight is met through the aspect ratio instead of distorting the image.
+    const sizeStyle = size ? {
+        aspectRatio: `${size.width} / ${size.height}`,
+        height: 'auto',
+        width: `min(100%, ${size.width}px${!isLongImage && style?.maxHeight ? `, calc(${style.maxHeight} * ${size.width / size.height})` : ''})`,
+    } : null;
 
     const handleImageError = () => {
         setLoaded(false);
@@ -177,23 +78,18 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
     };
 
     const handleToggleExpand = (e) => {
-        e.stopPropagation(); // 防止触发图片点击事件
+        e.stopPropagation();
         setIsExpanded(!isExpanded);
     };
 
     const handleImageClick = (e) => {
-        // 如果图片加载失败,点击重试
         if (error) {
             handleRetry(e);
             return;
         }
-        // 点击图片直接打开灯箱
-        if (onClick) {
-            onClick(e);
-        }
+        onClick?.(e);
     };
 
-    // Compact mode for preview images - maintains fixed size
     if (compact) {
         return (
             <div
@@ -300,11 +196,13 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                 }}
             >
                 <img
+                    key={retryCount}
                     ref={imageRef}
                     src={imageSrc}
                     alt={alt}
                     style={{
                         ...style,
+                        ...sizeStyle,
                         ...(isLongImage ? { maxHeight: 'none' } : {}),
                         opacity: loaded ? 1 : 0,
                         transition: 'opacity 0.3s',
@@ -334,7 +232,7 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                         </svg>
                     </div>
                 )}
-                {isLongImage && !isExpanded && dimensionsKnown && (
+                {isLongImage && !isExpanded && (
                     <div
                         style={{
                             position: 'absolute',
@@ -349,7 +247,7 @@ export const LazyImage = ({ src, alt, style, onClick, enableLongImageCollapse = 
                         }}
                     />
                 )}
-                {isLongImage && dimensionsKnown && (
+                {isLongImage && (
                     <button
                         onClick={handleToggleExpand}
                         style={{

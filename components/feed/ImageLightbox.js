@@ -1,6 +1,20 @@
 import { useEffect, useState, useRef } from 'react';
 import { styles } from '../../styles/feedStyles';
 
+const zoomButtonStyle = {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '50%',
+    width: '40px',
+    height: '40px',
+    fontSize: '20px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+};
+
 export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [startX, setStartX] = useState(0);
@@ -21,7 +35,6 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const lastWheelTimeRef = useRef(0);
     const initialPinchDistanceRef = useRef(0);
     const lastPinchScaleRef = useRef(1);
-    const pinchCenterRef = useRef({ x: 0, y: 0 });
     const initialPinchCenterRef = useRef({ x: 0, y: 0 });
     const initialImagePositionRef = useRef({ x: 0, y: 0 });
     const wheelRAFRef = useRef(null);
@@ -29,44 +42,23 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
     const lastTapTimeRef = useRef(0);
     const lastDragTimeRef = useRef(0);
     const lastTapPosRef = useRef({ x: 0, y: 0 });
-    
-    const [loadedImageIndices, setLoadedImageIndices] = useState(new Set());
-    const [imageErrors, setImageErrors] = useState({}); // Track which images failed to load
-    const [retryCounts, setRetryCounts] = useState({}); // Track retry counts for each image
-    const [finishedLoadingIndices, setFinishedLoadingIndices] = useState(new Set()); // Track which images finished loading (success or error)
-    
-    // 创建无限循环的图片数组：在前后各添加一张图片
+
+    const [imageErrors, setImageErrors] = useState({});
+    const [retryCounts, setRetryCounts] = useState({});
+    const [finishedLoadingIndices, setFinishedLoadingIndices] = useState(new Set());
+
+    // The track has a clone of the last image in front and of the first image at the end,
+    // so wrapping around can animate before snapping back to the real slide.
     const infiniteImages = [images[images.length - 1], ...images, images[0]];
 
-    // 计算需要加载的图片索引（当前 + 前后各一张）
-    useEffect(() => {
-        const indicesToLoad = new Set();
-        
-        // 当前图片
-        indicesToLoad.add(currentImageIndex);
-        
-        // 前一张
-        const prevIndex = currentImageIndex > 0 ? currentImageIndex - 1 : images.length - 1;
-        indicesToLoad.add(prevIndex);
-        
-        // 后一张
-        const nextIndex = currentImageIndex < images.length - 1 ? currentImageIndex + 1 : 0;
-        indicesToLoad.add(nextIndex);
-        
-        setLoadedImageIndices(indicesToLoad);
-    }, [currentImageIndex, images.length]);
+    const prevIndex = currentImageIndex > 0 ? currentImageIndex - 1 : images.length - 1;
+    const nextIndex = currentImageIndex < images.length - 1 ? currentImageIndex + 1 : 0;
+    const shouldLoadIndex = (index) => index === currentImageIndex || index === prevIndex || index === nextIndex;
 
     useEffect(() => {
-        // 检测是否为移动设备
-        const checkIsMobile = () => {
-            setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-        };
-        checkIsMobile();
-        
-        // 保存当前滚动位置
+        setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+
         const scrollY = window.scrollY;
-        
-        // 添加样式标签来处理滚动锁定
         const style = document.createElement('style');
         style.id = 'lightbox-scroll-lock';
         style.textContent = `
@@ -79,13 +71,9 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             }
         `;
         document.head.appendChild(style);
-        
+
         return () => {
-            // 移除样式标签并恢复滚动位置
-            const styleElement = document.getElementById('lightbox-scroll-lock');
-            if (styleElement) {
-                styleElement.remove();
-            }
+            style.remove();
             window.scrollTo(0, scrollY);
         };
     }, []);
@@ -102,100 +90,41 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         };
 
         const handleWheel = (e) => {
-            // 只在 PC 端启用滚轮切换
             if (isMobile) return;
-            
-            // 如果图片已缩放，用滚轮滚动图片位置
+            e.preventDefault();
+
             if (scale > 1) {
-                e.preventDefault();
-                
-                // 标记正在滚动，禁用 transition
                 setIsWheelScrolling(true);
-                
-                // 取消之前的 RAF 和超时
-                if (wheelRAFRef.current) {
-                    cancelAnimationFrame(wheelRAFRef.current);
-                }
-                if (wheelScrollTimeoutRef.current) {
-                    clearTimeout(wheelScrollTimeoutRef.current);
-                }
-                
-                // 使用 RAF 来优化滚动性能
+                cancelAnimationFrame(wheelRAFRef.current);
+                clearTimeout(wheelScrollTimeoutRef.current);
+
                 wheelRAFRef.current = requestAnimationFrame(() => {
-                    // 计算新的位置
-                    const scrollSpeed = 1; // 滚动速度系数
-                    const newY = imagePosition.y - e.deltaY * scrollSpeed;
-                    const newX = imagePosition.x - e.deltaX * scrollSpeed;
-                    
-                    // 快速边界检查（不调用完整的 constrainPosition）
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    
-                    // 使用缓存的图片尺寸
-                    const imageWidth = actualImageSize.width || viewportWidth * 0.95;
-                    const imageHeight = actualImageSize.height || viewportHeight * 0.8;
-                    
-                    const scaledWidth = imageWidth * scale;
-                    const scaledHeight = imageHeight * scale;
-                    
-                    const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
-                    const maxOffsetY = Math.max(0, (scaledHeight - viewportHeight) / 2);
-                    
-                    const constrainedX = Math.max(-maxOffsetX, Math.min(maxOffsetX, newX));
-                    const constrainedY = Math.max(-maxOffsetY, Math.min(maxOffsetY, newY));
-                    
-                    setImagePosition({ x: constrainedX, y: constrainedY });
+                    setImagePosition(constrainPosition(imagePosition.x - e.deltaX, imagePosition.y - e.deltaY, scale));
                 });
-                
-                // 滚动停止后 150ms 恢复 transition（用于处理 Mac 惯性滚动）
+
                 wheelScrollTimeoutRef.current = setTimeout(() => {
                     setIsWheelScrolling(false);
                 }, 150);
-                
                 return;
             }
-            
-            e.preventDefault();
-            
+
             const now = Date.now();
-            const timeSinceLastSwitch = now - lastWheelTimeRef.current;
-            
-            // 冷却时间：切换图片后 1000ms 内忽略滚轮事件
-            if (timeSinceLastSwitch < 1000) {
-                return;
-            }
-            
-            // 判断滚动方向：优先检测横向滚动（触摸板横向滑动）
-            const isHorizontalScroll = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-            
-            if (isHorizontalScroll) {
-                // 横向滚动
-                if (e.deltaX > 0) {
-                    // 向右滚动，切换到下一张
-                    lastWheelTimeRef.current = now;
-                    goToNext();
-                } else if (e.deltaX < 0) {
-                    // 向左滚动，切换到上一张
-                    lastWheelTimeRef.current = now;
-                    goToPrevious();
-                }
+            if (now - lastWheelTimeRef.current < 1000) return;
+
+            const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+            if (delta === 0) return;
+
+            lastWheelTimeRef.current = now;
+            if (delta > 0) {
+                goToNext();
             } else {
-                // 纵向滚动
-                if (e.deltaY > 0) {
-                    // 向下滚动，切换到下一张
-                    lastWheelTimeRef.current = now;
-                    goToNext();
-                } else if (e.deltaY < 0) {
-                    // 向上滚动，切换到上一张
-                    lastWheelTimeRef.current = now;
-                    goToPrevious();
-                }
+                goToPrevious();
             }
         };
 
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('wheel', handleWheel, { passive: false });
-        
+
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('wheel', handleWheel);
@@ -207,66 +136,41 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         setImagePosition({ x: 0, y: 0 });
     };
 
-    // 限制图片位置，防止移出窗口
+    const getCurrentImageSize = () => {
+        const currentImage = imageRefs.current[currentImageIndex + 1];
+        const width = currentImage?.offsetWidth || actualImageSize.width;
+        const height = currentImage?.offsetHeight || actualImageSize.height;
+        if (width && height) return { width, height };
+        return { width: window.innerWidth * 0.95, height: window.innerHeight * 0.8 };
+    };
+
     const constrainPosition = (x, y, currentScale) => {
         if (currentScale <= 1) {
             return { x: 0, y: 0 };
         }
 
-        // 获取窗口尺寸
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        const { width, height } = getCurrentImageSize();
+        const maxOffsetX = Math.max(0, (width * currentScale - window.innerWidth) / 2);
+        const maxOffsetY = Math.max(0, (height * currentScale - window.innerHeight) / 2);
 
-        // 获取当前图片的实际渲染尺寸
-        const currentImageRef = imageRefs.current[currentImageIndex + 1];
-        let imageWidth = actualImageSize.width;
-        let imageHeight = actualImageSize.height;
-
-        if (currentImageRef) {
-            imageWidth = currentImageRef.offsetWidth || imageWidth;
-            imageHeight = currentImageRef.offsetHeight || imageHeight;
-        }
-
-        // 如果没有获取到尺寸，使用默认值
-        if (!imageWidth || !imageHeight) {
-            imageWidth = viewportWidth * 0.95;
-            imageHeight = viewportHeight * 0.8;
-        }
-        
-        // 缩放后的图片尺寸
-        const scaledWidth = imageWidth * currentScale;
-        const scaledHeight = imageHeight * currentScale;
-
-        // 计算允许的最大偏移量（图片边缘不能超出视口）
-        const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
-        const maxOffsetY = Math.max(0, (scaledHeight - viewportHeight) / 2);
-
-        // 限制位置
-        const constrainedX = Math.max(-maxOffsetX, Math.min(maxOffsetX, x));
-        const constrainedY = Math.max(-maxOffsetY, Math.min(maxOffsetY, y));
-
-        return { x: constrainedX, y: constrainedY };
+        return {
+            x: Math.max(-maxOffsetX, Math.min(maxOffsetX, x)),
+            y: Math.max(-maxOffsetY, Math.min(maxOffsetY, y)),
+        };
     };
 
     const goToPrevious = () => {
         resetZoom();
         setDragOffset(0);
         setIsTransitioning(true);
-        const newIndex = currentImageIndex > 0 ? currentImageIndex - 1 : images.length - 1;
-        
-        // 移动到前一张（实际位置 + 1，因为有克隆图片）
-        setTranslateX(-(currentImageIndex) * 100);
-        
+        setTranslateX(-currentImageIndex * 100);
+
         setTimeout(() => {
-            setCurrentImageIndex(newIndex);
-            onImageChange(newIndex);
-            
-            // 如果到达了克隆的最后一张，立即跳转到真实的最后一张
+            setCurrentImageIndex(prevIndex);
+            onImageChange(prevIndex);
+            setIsTransitioning(false);
             if (currentImageIndex === 0) {
-                setIsTransitioning(false);
-                setTranslateX(-(images.length) * 100);
-            } else {
-                setIsTransitioning(false);
+                setTranslateX(-images.length * 100);
             }
         }, 300);
     };
@@ -275,53 +179,25 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         resetZoom();
         setDragOffset(0);
         setIsTransitioning(true);
-        const newIndex = currentImageIndex < images.length - 1 ? currentImageIndex + 1 : 0;
-        
-        // 移动到下一张（实际位置 + 1，因为有克隆图片）
         setTranslateX(-(currentImageIndex + 2) * 100);
-        
+
         setTimeout(() => {
-            setCurrentImageIndex(newIndex);
-            onImageChange(newIndex);
-            
-            // 如果到达了克隆的第一张，立即跳转到真实的第一张
+            setCurrentImageIndex(nextIndex);
+            onImageChange(nextIndex);
+            setIsTransitioning(false);
             if (currentImageIndex === images.length - 1) {
-                setIsTransitioning(false);
-                setTranslateX(-1 * 100);
-            } else {
-                setIsTransitioning(false);
+                setTranslateX(-100);
             }
         }, 300);
     };
 
-    const handleZoomIn = () => {
-        setScale(prev => {
-            const newScale = Math.min(prev + 1, 15);
-            // 缩放时重新约束位置
-            const constrained = constrainPosition(imagePosition.x, imagePosition.y, newScale);
-            setImagePosition(constrained);
-            return newScale;
-        });
+    const zoomTo = (newScale) => {
+        setScale(newScale);
+        setImagePosition(constrainPosition(imagePosition.x, imagePosition.y, newScale));
     };
 
-    const handleZoomOut = () => {
-        if (scale <= 1) {
-            setScale(1);
-            setImagePosition({ x: 0, y: 0 });
-        } else {
-            setScale(prev => {
-                const newScale = Math.max(prev - 1, 1);
-                // 缩放时重新约束位置
-                const constrained = constrainPosition(imagePosition.x, imagePosition.y, newScale);
-                setImagePosition(constrained);
-                return newScale;
-            });
-        }
-    };
-
-    const handleResetZoom = () => {
-        resetZoom();
-    };
+    const handleZoomIn = () => zoomTo(Math.min(scale + 1, 15));
+    const handleZoomOut = () => zoomTo(Math.max(scale - 1, 1));
 
     const getCoords = (e) => {
         if (e.touches && e.touches.length > 0) {
@@ -333,27 +209,60 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
         return { x: e.clientX, y: e.clientY };
     };
 
-    const handleMouseDown = (e) => {
-        const { x, y } = getCoords(e);
+    const getContainerWidth = () => containerRef.current?.offsetWidth || window.innerWidth;
 
-        // 如果是点击了图片且已缩放，则进入图片拖动（平移）模式
-        if (e.target.closest('img') && scale > 1) {
-            setIsDraggingImage(true);
-            setDragStartPos({
-                x: x - imagePosition.x,
-                y: y - imagePosition.y
-            });
-            e.preventDefault();
-            return;
-        }
-        
-        // 其他情况（点击背景，或在未缩放时点击图片），进入翻页拖拽模式
+    const startImagePan = (x, y) => {
+        setIsDraggingImage(true);
+        setDragStartPos({ x: x - imagePosition.x, y: y - imagePosition.y });
+    };
+
+    const startSwipe = (x) => {
         setIsDragging(true);
         setStartX(x);
         setDragOffset(0);
         setIsTransitioning(false);
-        
-        // 防止 PC 端拖拽图片时触发浏览器默认行为（如拖动阴影）
+    };
+
+    const updateSwipe = (x) => {
+        setDragOffset(((x - startX) / getContainerWidth()) * 100);
+    };
+
+    const finishSwipe = () => {
+        setIsDragging(false);
+
+        const containerWidth = getContainerWidth();
+        const dragDistance = (dragOffset / 100) * containerWidth;
+
+        // The click that follows a drag must not close the lightbox.
+        if (Math.abs(dragDistance) > 5) {
+            lastDragTimeRef.current = Date.now();
+        }
+
+        if (Math.abs(dragDistance) > containerWidth * 0.15) {
+            if (dragDistance < 0) {
+                goToNext();
+            } else {
+                goToPrevious();
+            }
+        } else if (dragOffset !== 0) {
+            setIsTransitioning(true);
+            setDragOffset(0);
+            setTimeout(() => {
+                setIsTransitioning(false);
+            }, 300);
+        }
+    };
+
+    const handleMouseDown = (e) => {
+        const { x, y } = getCoords(e);
+
+        if (e.target.closest('img') && scale > 1) {
+            startImagePan(x, y);
+            e.preventDefault();
+            return;
+        }
+
+        startSwipe(x);
         if (!isMobile && e.target.tagName === 'IMG') {
             e.preventDefault();
         }
@@ -361,405 +270,166 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
 
     const handleMouseMove = (e) => {
         const { x, y } = getCoords(e);
-        const clientX = x;
-        const clientY = y;
 
-        // 拖动缩放后的图片
         if (isDraggingImage && scale > 1) {
-            const newX = clientX - dragStartPos.x;
-            const newY = clientY - dragStartPos.y;
-            
-            // 应用边界限制
-            const constrained = constrainPosition(newX, newY, scale);
-            setImagePosition(constrained);
-            return;
-        }
-        
-        // 拖拽切换图片
-        if (isDragging) {
-            const diffX = clientX - startX;
-            
-            const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-            const offsetPercent = (diffX / containerWidth) * 100;
-            
-            setDragOffset(offsetPercent);
+            setImagePosition(constrainPosition(x - dragStartPos.x, y - dragStartPos.y, scale));
+        } else if (isDragging) {
+            updateSwipe(x);
         }
     };
 
-    const handleMouseUp = (e) => {
-        // 停止拖动图片
+    const handleMouseUp = () => {
         if (isDraggingImage) {
             setIsDraggingImage(false);
-            return;
-        }
-        
-        // 处理切换图片
-        if (!isDragging) return;
-        
-        const wasDragging = isDragging;
-        setIsDragging(false);
-        
-        // 计算拖拽距离
-        const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-        const dragThreshold = containerWidth * 0.15; // 15% 的宽度作为切换阈值
-        const dragDistance = (dragOffset / 100) * containerWidth;
-        
-        if (Math.abs(dragDistance) > dragThreshold) {
-            // 拖拽距离超过阈值，切换图片
-            if (dragDistance < 0) {
-                // 向左拖拽，显示下一张
-                goToNext();
-            } else {
-                // 向右拖拽，显示上一张
-                goToPrevious();
-            }
-        } else {
-            // 拖拽距离不够，回弹到当前图片
-            if (dragOffset !== 0) {
-                // 如果位移超过一定阈值（虽然没到翻页阈值），记录为拖拽，防止误触发点击关闭
-                if (Math.abs(dragDistance) > 10) {
-                    lastDragTimeRef.current = Date.now();
-                }
-                setIsTransitioning(true);
-                setDragOffset(0);
-                setTimeout(() => {
-                    setIsTransitioning(false);
-                }, 300);
-            }
+        } else if (isDragging) {
+            finishSwipe();
         }
     };
 
-    // Handle double-tap zoom for mobile
     const handleDoubleTap = (tapX, tapY) => {
         if (scale > 1) {
-            // Already zoomed, reset to normal
             resetZoom();
-        } else {
-            // Zoom in to 2x at tap position
-            const newScale = 2;
-            
-            // Calculate tap position relative to viewport center
-            const viewportCenterX = window.innerWidth / 2;
-            const viewportCenterY = window.innerHeight / 2;
-            const tapOffsetX = tapX - viewportCenterX;
-            const tapOffsetY = tapY - viewportCenterY;
-            
-            // Get current image dimensions
-            const currentImageRef = imageRefs.current[currentImageIndex + 1];
-            let imageWidth = actualImageSize.width;
-            let imageHeight = actualImageSize.height;
-            
-            if (currentImageRef) {
-                imageWidth = currentImageRef.offsetWidth || imageWidth;
-                imageHeight = currentImageRef.offsetHeight || imageHeight;
-            }
-            
-            if (!imageWidth || !imageHeight) {
-                imageWidth = window.innerWidth * 0.95;
-                imageHeight = window.innerHeight * 0.8;
-            }
-            
-            // Calculate point in image coordinates
-            const pointInImageX = tapOffsetX / 1; // scale is 1 before zoom
-            const pointInImageY = tapOffsetY / 1;
-            
-            // Calculate new position to keep tap point at same screen position
-            const newX = tapOffsetX - pointInImageX * newScale;
-            const newY = tapOffsetY - pointInImageY * newScale;
-            
-            // Apply constraints
-            const constrained = constrainPosition(newX, newY, newScale);
-            
-            setScale(newScale);
-            setImagePosition(constrained);
+            return;
         }
+        const newScale = 2;
+        const tapOffsetX = tapX - window.innerWidth / 2;
+        const tapOffsetY = tapY - window.innerHeight / 2;
+        setScale(newScale);
+        setImagePosition(constrainPosition(tapOffsetX * (1 - newScale), tapOffsetY * (1 - newScale), newScale));
     };
 
     const handleTouchStart = (e) => {
-        // 触摸事件只在移动端处理
         if (!isMobile) return;
-        
-        // 检测双击
+
         if (e.touches.length === 1 && !isPinching) {
-            // 如果点击的是按钮，不触发双击放大逻辑
             if (e.target.closest('button')) return;
 
             const now = Date.now();
             const tapX = e.touches[0].clientX;
             const tapY = e.touches[0].clientY;
-            const timeSinceLastTap = now - lastTapTimeRef.current;
-            const distanceFromLastTap = Math.hypot(
-                tapX - lastTapPosRef.current.x,
-                tapY - lastTapPosRef.current.y
-            );
-            
-            // Double-tap detected: within 300ms and within 50px
-            if (timeSinceLastTap < 300 && distanceFromLastTap < 50) {
+            const isDoubleTap = now - lastTapTimeRef.current < 300 &&
+                Math.hypot(tapX - lastTapPosRef.current.x, tapY - lastTapPosRef.current.y) < 50;
+
+            if (isDoubleTap) {
                 e.preventDefault();
                 handleDoubleTap(tapX, tapY);
-                lastTapTimeRef.current = 0; // Reset to prevent triple-tap
+                lastTapTimeRef.current = 0;
                 return;
             }
-            
-            // Record this tap
+
             lastTapTimeRef.current = now;
             lastTapPosRef.current = { x: tapX, y: tapY };
+
+            if (e.target.closest('img') && scale > 1) {
+                startImagePan(tapX, tapY);
+            } else {
+                startSwipe(tapX);
+            }
+            return;
         }
-        
-        // 检测是否为双指触摸（缩放手势）
+
         if (e.touches.length === 2) {
             setIsPinching(true);
             setIsDragging(false);
-            
-            // 计算初始双指距离和中心点
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const distance = Math.hypot(
+
+            const [touch1, touch2] = e.touches;
+            initialPinchDistanceRef.current = Math.hypot(
                 touch2.clientX - touch1.clientX,
                 touch2.clientY - touch1.clientY
             );
-            
-            // 计算初始双指中心点
-            const centerX = (touch1.clientX + touch2.clientX) / 2;
-            const centerY = (touch1.clientY + touch2.clientY) / 2;
-            
-            // 保存初始状态 - 每次新的缩放手势都重新保存
-            initialPinchDistanceRef.current = distance;
             lastPinchScaleRef.current = scale;
             initialImagePositionRef.current = { ...imagePosition };
-            initialPinchCenterRef.current = { x: centerX, y: centerY };
-            
-            return;
-        }
-        
-        // 单指触摸
-        if (e.touches.length === 1 && !isPinching) {
-            // 如果是点击了图片且已缩放，则进入图片拖动（平移）模式
-            if (e.target.closest('img') && scale > 1) {
-                setIsDraggingImage(true);
-                setDragStartPos({
-                    x: e.touches[0].clientX - imagePosition.x,
-                    y: e.touches[0].clientY - imagePosition.y
-                });
-            } else {
-                // 其他情况，进入翻页拖拽模式
-                setIsDragging(true);
-                setStartX(e.touches[0].clientX);
-                setDragOffset(0);
-                setIsTransitioning(false);
-            }
+            initialPinchCenterRef.current = {
+                x: (touch1.clientX + touch2.clientX) / 2,
+                y: (touch1.clientY + touch2.clientY) / 2,
+            };
         }
     };
 
     const handleTouchMove = (e) => {
         if (!isMobile) return;
-        
-        // 如果是双指触摸，处理缩放和移动
+
         if (e.touches.length === 2) {
             setIsPinching(true);
             setIsDragging(false);
-            
-            // 计算当前双指距离和中心点
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
+
+            const [touch1, touch2] = e.touches;
             const distance = Math.hypot(
                 touch2.clientX - touch1.clientX,
                 touch2.clientY - touch1.clientY
             );
-            
-            // 计算当前双指中心点（屏幕坐标）
             const centerX = (touch1.clientX + touch2.clientX) / 2;
             const centerY = (touch1.clientY + touch2.clientY) / 2;
-            
-            // 计算双指中心点的移动距离
-            const centerDeltaX = centerX - initialPinchCenterRef.current.x;
-            const centerDeltaY = centerY - initialPinchCenterRef.current.y;
-            
-            // 计算缩放比例变化
-            const scaleChange = distance / initialPinchDistanceRef.current;
-            const newScale = Math.max(1, Math.min(15, lastPinchScaleRef.current * scaleChange));
-            
-            // 计算初始缩放中心点相对于视口中心的偏移
-            const viewportCenterX = window.innerWidth / 2;
-            const viewportCenterY = window.innerHeight / 2;
-            const initialTouchOffsetX = initialPinchCenterRef.current.x - viewportCenterX;
-            const initialTouchOffsetY = initialPinchCenterRef.current.y - viewportCenterY;
-            
-            // 计算手指在图片坐标系中的位置（基于初始位置）
-            const pointInImageX = (initialTouchOffsetX - initialImagePositionRef.current.x) / lastPinchScaleRef.current;
-            const pointInImageY = (initialTouchOffsetY - initialImagePositionRef.current.y) / lastPinchScaleRef.current;
-            
-            // 计算新的图片位置：
-            // 1. 先根据缩放调整位置，使图片上的点保持在初始手指位置
-            // 2. 再加上手指中心点的移动距离
-            const newX = initialTouchOffsetX - pointInImageX * newScale + centerDeltaX;
-            const newY = initialTouchOffsetY - pointInImageY * newScale + centerDeltaY;
-            
-            // 应用边界限制
-            const constrained = constrainPosition(newX, newY, newScale);
-            
+
+            const startScale = lastPinchScaleRef.current;
+            const newScale = Math.max(1, Math.min(15, startScale * distance / initialPinchDistanceRef.current));
+
+            const initialOffsetX = initialPinchCenterRef.current.x - window.innerWidth / 2;
+            const initialOffsetY = initialPinchCenterRef.current.y - window.innerHeight / 2;
+            const pointInImageX = (initialOffsetX - initialImagePositionRef.current.x) / startScale;
+            const pointInImageY = (initialOffsetY - initialImagePositionRef.current.y) / startScale;
+            const newX = initialOffsetX - pointInImageX * newScale + (centerX - initialPinchCenterRef.current.x);
+            const newY = initialOffsetY - pointInImageY * newScale + (centerY - initialPinchCenterRef.current.y);
+
             setScale(newScale);
-            setImagePosition(constrained);
-            
+            setImagePosition(constrainPosition(newX, newY, newScale));
             return;
         }
-        
-        // 如果图片已缩放，拖动图片
-        if (isDraggingImage && scale > 1 && e.touches.length === 1) {
-            const newX = e.touches[0].clientX - dragStartPos.x;
-            const newY = e.touches[0].clientY - dragStartPos.y;
-            
-            // 应用边界限制
-            const constrained = constrainPosition(newX, newY, scale);
-            setImagePosition(constrained);
-            return;
-        }
-        
-        // 单指滑动且不在缩放状态
-        if (isDragging && !isPinching && e.touches.length === 1) {
-            const currentX = e.touches[0].clientX;
-            const diffX = currentX - startX;
-            
-            // 计算拖拽偏移量（转换为百分比）
-            const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-            const offsetPercent = (diffX / containerWidth) * 100;
-            
-            // 实时更新位置，让图片跟随手指
-            setDragOffset(offsetPercent);
+
+        if (e.touches.length !== 1) return;
+
+        if (isDraggingImage && scale > 1) {
+            setImagePosition(constrainPosition(
+                e.touches[0].clientX - dragStartPos.x,
+                e.touches[0].clientY - dragStartPos.y,
+                scale
+            ));
+        } else if (isDragging && !isPinching) {
+            updateSwipe(e.touches[0].clientX);
         }
     };
 
     const handleTouchEnd = (e) => {
         if (!isMobile) return;
-        
-        // 如果还有触摸点存在，说明是多指操作中的一个手指抬起
+
         if (e.touches.length > 0) {
-            // 如果从双指变成单指，结束缩放状态但保持当前缩放和位置
             if (isPinching && e.touches.length === 1) {
                 setIsPinching(false);
-                
-                // 如果缩放到1以下，重置位置
-                if (scale <= 1) {
-                    setScale(1);
-                    setImagePosition({ x: 0, y: 0 });
-                }
-                
-                // 转换为单指拖动状态（如果图片已缩放）
                 if (scale > 1) {
-                    setIsDraggingImage(true);
-                    setDragStartPos({
-                        x: e.touches[0].clientX - imagePosition.x,
-                        y: e.touches[0].clientY - imagePosition.y
-                    });
+                    startImagePan(e.touches[0].clientX, e.touches[0].clientY);
+                } else {
+                    resetZoom();
                 }
             }
             return;
         }
-        
-        // 所有手指都抬起了，完全结束触摸操作
+
         if (isPinching) {
             setIsPinching(false);
             setIsDragging(false);
             setDragOffset(0);
-            initialPinchDistanceRef.current = 0;
-            initialPinchCenterRef.current = { x: 0, y: 0 };
-            initialImagePositionRef.current = { x: 0, y: 0 };
-            
-            // 如果缩放到1以下，重置位置
             if (scale <= 1) {
-                setScale(1);
-                setImagePosition({ x: 0, y: 0 });
+                resetZoom();
             }
             return;
         }
-        
-        // 如果在拖动缩放后的图片
+
         if (isDraggingImage) {
             setIsDraggingImage(false);
             return;
         }
-        
-        const wasDragging = isDragging;
-        setIsDragging(false);
-        
-        // 计算拖拽距离
-        const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-        const dragThreshold = containerWidth * 0.15; // 15% 的宽度作为切换阈值
-        const dragDistance = (dragOffset / 100) * containerWidth;
-        
-        if (Math.abs(dragDistance) > dragThreshold) {
-            // 拖拽距离超过阈值，切换图片
-            if (dragDistance < 0) {
-                // 向左拖拽，显示下一张
-                goToNext();
-            } else {
-                // 向右拖拽，显示上一张
-                goToPrevious();
-            }
-        } else {
-            // 如果没有明显的拖拽，且目标是背景或图片，则可能是点击
-            if (dragOffset === 0 && wasDragging) {
-                const now = Date.now();
-                if (now - lastTapTimeRef.current < 300) {
-                    // 这是正常的单次点击（不是双击的前奏，或者双击的第一下）
-                    // 延迟一小会，如果没有第二次点击，就看作是单次点击
-                    setTimeout(() => {
-                        const timeSinceLastTap = Date.now() - lastTapTimeRef.current;
-                        // 如果距离上次 handleDoubleTap 设置的 lastTapTimeRef.current = 0 比较远
-                        // 且没有新的点击发生，说明这就是一次普通的单击
-                        if (lastTapTimeRef.current !== 0 && timeSinceLastTap >= 300) {
-                            // 检查点击位置是否在空白处
-                            const touch = e.changedTouches[0];
-                            if (touch) {
-                                const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                                // 如果点击的是 slide 容器或 slider 或是已加载图片的容器（非图片本身）
-                                if (element && 
-                                    !element.closest('button') && 
-                                    !element.closest('img') && 
-                                    (
-                                        element.style.minWidth === '100%' || 
-                                        element.tagName === 'DIV'
-                                    )
-                                ) {
-                                    onClose();
-                                }
-                            }
-                        }
-                    }, 300);
-                }
-            }
-            
-            // 只有在位移非0时才触发回弹动画
-            if (dragOffset !== 0) {
-                // 记录拖拽，防止误点关闭
-                if (Math.abs(dragDistance) > 5) {
-                    lastDragTimeRef.current = Date.now();
-                }
-                setIsTransitioning(true);
-                setDragOffset(0);
-                setTimeout(() => {
-                    setIsTransitioning(false);
-                }, 300);
-            }
-        }
+
+        finishSwipe();
     };
 
     const handleBackgroundClick = (e) => {
-        // 如果刚刚发生过拖拽，不触发点击关闭
         if (Date.now() - lastDragTimeRef.current < 100) return;
+        if (e.target.closest('img') || e.target.closest('button') || e.target.closest('svg')) return;
 
-        // 如果点击的是图片本身或者各种按钮，不关闭
-        if (e.target.closest('img') || e.target.closest('button') || e.target.closest('svg')) {
-            return;
-        }
-
-        // 只有点击的是 DIV 或是容器本身才关闭（排除掉可能的交互元素）
         if (e.target.tagName === 'DIV' || e.target === e.currentTarget) {
             onClose();
         }
     };
-
-    if (!images || images.length === 0) return null;
 
     return (
         <div
@@ -775,9 +445,8 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
         >
-            {/* 关闭按钮 */}
-            <button 
-                style={{...styles.lightboxCloseButton, top: '20px', right: '20px'}} 
+            <button
+                style={{...styles.lightboxCloseButton, top: '20px', right: '20px'}}
                 onClick={(e) => {
                     e.stopPropagation();
                     onClose();
@@ -786,11 +455,10 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 ×
             </button>
 
-            {/* 左右切换按钮 */}
             {images.length > 1 && (
                 <>
-                    <button 
-                        style={{...styles.lightboxNavButton, left: '20px'}} 
+                    <button
+                        style={{...styles.lightboxNavButton, left: '20px'}}
                         onClick={(e) => {
                             e.stopPropagation();
                             goToPrevious();
@@ -810,7 +478,6 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 </>
             )}
 
-            {/* 图片轮播容器 */}
             <div
                 ref={containerRef}
                 style={{
@@ -820,45 +487,36 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 }}
             >
                 {infiniteImages.map((img, index) => {
-                    // 只对当前显示的图片应用缩放
                     const isCurrentImage = index === currentImageIndex + 1;
-                    
-                    // 计算实际图片索引（去掉克隆图片的偏移）
-                    let actualIndex;
-                    if (index === 0) {
-                        actualIndex = images.length - 1; // 克隆的最后一张
-                    } else if (index === infiniteImages.length - 1) {
-                        actualIndex = 0; // 克隆的第一张
-                    } else {
-                        actualIndex = index - 1; // 正常图片
-                    }
-                    
-                    // 判断是否应该加载这张图片
-                    const shouldLoad = loadedImageIndices.has(actualIndex);
+                    const actualIndex = (index - 1 + images.length) % images.length;
+                    const shouldLoad = shouldLoadIndex(actualIndex);
                     const hasError = imageErrors[actualIndex];
+                    const isFinished = finishedLoadingIndices.has(actualIndex);
                     const retryCount = retryCounts[actualIndex] || 0;
-                    
+
                     return (
                         <div
                             key={index}
                             style={styles.lightboxSlide}
                             onClick={(e) => {
-                                // 在 slide 层面处理点击，如果是点击背景则关闭
                                 handleBackgroundClick(e);
                                 e.stopPropagation();
                             }}
                         >
                             {shouldLoad ? (
                                 hasError ? (
-                                    // Error state with retry button
                                     <div
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            // Retry loading
                                             setImageErrors(prev => ({
                                                 ...prev,
                                                 [actualIndex]: false
                                             }));
+                                            setFinishedLoadingIndices(prev => {
+                                                const next = new Set(prev);
+                                                next.delete(actualIndex);
+                                                return next;
+                                            });
                                             setRetryCounts(prev => ({
                                                 ...prev,
                                                 [actualIndex]: (prev[actualIndex] || 0) + 1
@@ -877,85 +535,74 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                                         </svg>
                                     </div>
                                 ) : (
-                                    (() => {
-                                        const isFinished = finishedLoadingIndices.has(actualIndex);
-                                        
-                                        return (
-                                            <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {!isFinished && !hasError && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: '50%',
-                                                        left: '50%',
-                                                        transform: 'translate(-50%, -50%)',
-                                                        zIndex: 1
-                                                    }}>
-                                                        <div style={{
-                                                            width: '40px',
-                                                            height: '40px',
-                                                            border: '3px solid rgba(255,255,255,0.3)',
-                                                            borderTop: '3px solid white',
-                                                            borderRadius: '50%',
-                                                            animation: 'spin 1s linear infinite',
-                                                        }} />
-                                                    </div>
-                                                )}
-                                                <img
-                                                    key={retryCount}
-                                                    ref={(el) => {
-                                                        if (el) {
-                                                            imageRefs.current[index] = el;
-                                                        }
-                                                    }}
-                                                    src={img}
-                                                    alt={`Image ${index}`}
-                                                    style={{
-                                                        ...styles.lightboxImage,
-                                                        display: hasError ? 'none' : 'block',
-                                                        opacity: isFinished ? 1 : 0,
-                                                        transition: 'opacity 0.3s ease',
-                                                        transform: isCurrentImage
-                                                            ? `scale(${scale}) translate(${imagePosition.x / scale}px, ${imagePosition.y / scale}px)`
-                                                            : 'scale(1)',
-                                                        transition: isPinching || isDraggingImage || isWheelScrolling ? 'none' : (isFinished ? 'transform 0.3s ease, opacity 0.3s ease' : 'none'),
-                                                        cursor: scale > 1 ? 'move' : 'pointer',
-                                                    }}
-                                                    onLoad={(e) => {
-                                                        setFinishedLoadingIndices(prev => {
-                                                            const next = new Set(prev);
-                                                            next.add(actualIndex);
-                                                            return next;
-                                                        });
-                                                        if (isCurrentImage && e.target.offsetWidth > 0) {
-                                                            const newWidth = e.target.offsetWidth;
-                                                            const newHeight = e.target.offsetHeight;
-                                                            if (newWidth !== actualImageSize.width || newHeight !== actualImageSize.height) {
-                                                                setActualImageSize({
-                                                                    width: newWidth,
-                                                                    height: newHeight
-                                                                });
-                                                            }
-                                                        }
-                                                        setImageErrors(prev => ({
-                                                            ...prev,
-                                                            [actualIndex]: false
-                                                        }));
-                                                    }}
-                                                    onError={() => {
-                                                        setFinishedLoadingIndices(prev => {
-                                                            const next = new Set(prev);
-                                                            next.add(actualIndex);
-                                                            return next;
-                                                        });
-                                                        setImageErrors(prev => ({
-                                                            ...prev,
-                                                            [actualIndex]: true
-                                                        }));
-                                                    }}
-                                                />
+                                    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {!isFinished && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                zIndex: 1
+                                            }}>
+                                                <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    border: '3px solid rgba(255,255,255,0.3)',
+                                                    borderTop: '3px solid white',
+                                                    borderRadius: '50%',
+                                                    animation: 'spin 1s linear infinite',
+                                                }} />
                                             </div>
-                                        );
-                                    })()
+                                        )}
+                                        <img
+                                            key={retryCount}
+                                            ref={(el) => {
+                                                if (el) {
+                                                    imageRefs.current[index] = el;
+                                                }
+                                            }}
+                                            src={img}
+                                            alt={`Image ${index}`}
+                                            style={{
+                                                ...styles.lightboxImage,
+                                                display: hasError ? 'none' : 'block',
+                                                opacity: isFinished ? 1 : 0,
+                                                transform: isCurrentImage
+                                                    ? `scale(${scale}) translate(${imagePosition.x / scale}px, ${imagePosition.y / scale}px)`
+                                                    : 'scale(1)',
+                                                transition: isPinching || isDraggingImage || isWheelScrolling ? 'none' : (isFinished ? 'transform 0.3s ease, opacity 0.3s ease' : 'none'),
+                                                cursor: scale > 1 ? 'move' : 'pointer',
+                                            }}
+                                            onLoad={(e) => {
+                                                setFinishedLoadingIndices(prev => {
+                                                    const next = new Set(prev);
+                                                    next.add(actualIndex);
+                                                    return next;
+                                                });
+                                                if (isCurrentImage && e.target.offsetWidth > 0) {
+                                                    const newWidth = e.target.offsetWidth;
+                                                    const newHeight = e.target.offsetHeight;
+                                                    if (newWidth !== actualImageSize.width || newHeight !== actualImageSize.height) {
+                                                        setActualImageSize({
+                                                            width: newWidth,
+                                                            height: newHeight
+                                                        });
+                                                    }
+                                                }
+                                            }}
+                                            onError={() => {
+                                                setFinishedLoadingIndices(prev => {
+                                                    const next = new Set(prev);
+                                                    next.add(actualIndex);
+                                                    return next;
+                                                });
+                                                setImageErrors(prev => ({
+                                                    ...prev,
+                                                    [actualIndex]: true
+                                                }));
+                                            }}
+                                        />
+                                    </div>
                                 )
                             ) : (
                                 <div style={{
@@ -980,7 +627,6 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
                 })}
             </div>
 
-            {/* 缩放控制按钮 */}
             <div style={{
                 position: 'absolute',
                 bottom: '70px',
@@ -992,61 +638,24 @@ export const ImageLightbox = ({ images, currentIndex, onClose, onImageChange }) 
             }}>
                 <button
                     onClick={handleZoomOut}
-                    style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '40px',
-                        height: '40px',
-                        fontSize: '20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                    style={zoomButtonStyle}
                 >
                     −
                 </button>
                 <button
-                    onClick={handleResetZoom}
-                    style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '20px',
-                        padding: '0 15px',
-                        height: '40px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                    onClick={resetZoom}
+                    style={{ ...zoomButtonStyle, borderRadius: '20px', width: 'auto', padding: '0 15px', fontSize: '14px' }}
                 >
                     {Math.round(scale * 100)}%
                 </button>
                 <button
                     onClick={handleZoomIn}
-                    style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '40px',
-                        height: '40px',
-                        fontSize: '20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                    style={zoomButtonStyle}
                 >
                     +
                 </button>
             </div>
 
-            {/* 图片指示器 */}
             {images.length > 1 && (
                 <div style={styles.lightboxIndicator}>
                     {currentImageIndex + 1} / {images.length}

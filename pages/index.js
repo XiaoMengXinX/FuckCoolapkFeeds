@@ -1,46 +1,27 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { styles } from '../styles/homeStyles';
+import { useIframePages } from '../lib/useIframePages';
+
+const getPreviewLink = (input, host) => {
+  const value = input.trim();
+  if (/^\d+$/.test(value)) return `${host}/feed/${value}`;
+  if (!value.includes('coolapk.com')) return '';
+  try {
+    return `${host}${new URL(value).pathname}`;
+  } catch {
+    return '';
+  }
+};
 
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
-  const [outputLink, setOutputLink] = useState('');
   const [host, setHost] = useState('');
+  const outputLink = getPreviewLink(inputValue, host);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setHost(window.location.origin);
-    }
+    setHost(window.location.origin);
   }, []);
-
-  useEffect(() => {
-    if (!inputValue.trim()) {
-      setOutputLink('');
-      return;
-    }
-
-    try {
-      if (inputValue.includes('coolapk.com')) {
-        // 处理酷安链接
-        const url = new URL(inputValue);
-        // 移除查询参数，保留完整路径
-        const cleanPath = url.pathname;
-        setOutputLink(`${host}${cleanPath}`);
-      } else if (/^\d+$/.test(inputValue.trim())) {
-        // 处理纯数字ID
-        setOutputLink(`${host}/feed/${inputValue.trim()}`);
-      } else {
-        setOutputLink('');
-      }
-    } catch (error) {
-      // 如果URL解析失败，检查是否为纯数字
-      if (/^\d+$/.test(inputValue.trim())) {
-        setOutputLink(`${host}/feed/${inputValue.trim()}`);
-      } else {
-        setOutputLink('');
-      }
-    }
-  }, [inputValue, host]);
 
   const handleCopy = () => {
     if (!outputLink) return;
@@ -55,17 +36,12 @@ export default function Home() {
       const range = document.createRange();
       range.selectNode(textElement);
       const selection = window.getSelection();
-
-      // 移除之前选中内容
-      if (selection.rangeCount > 0) {
-        selection.removeAllRanges();
-      }
-
+      selection.removeAllRanges();
       selection.addRange(range);
       document.execCommand('copy');
       alert('链接已复制!');
       selection.removeAllRanges();
-    } catch (err) {
+    } catch {
       alert('复制失败，请手动复制');
     }
   };
@@ -168,46 +144,7 @@ export default function Home() {
 const MAX_HL_PAGES = 3;
 
 function HeadlinesSection() {
-  const [pages, setPages] = useState([1]);
-  const [iframeHeights, setIframeHeights] = useState({ 1: 100 });
-  const [loadingPages, setLoadingPages] = useState({ 1: true });
-  const loaderRef = useRef(null);
-
-  useEffect(() => {
-    const onMessage = (e) => {
-      if (e.data?.type === 'hl-height') {
-        const page = e.data.page || 1;
-        setIframeHeights(prev => ({ ...prev, [page]: e.data.height }));
-        setLoadingPages(prev => ({ ...prev, [page]: false }));
-      }
-    };
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const target = entries[0];
-      if (target.isIntersecting) {
-        setPages(prevPages => {
-          const currentMaxPage = Math.max(...prevPages);
-          if (currentMaxPage < MAX_HL_PAGES && !loadingPages[currentMaxPage]) {
-            const nextPage = currentMaxPage + 1;
-            setLoadingPages(prev => ({ ...prev, [nextPage]: true }));
-            return [...prevPages, nextPage];
-          }
-          return prevPages;
-        });
-      }
-    }, {
-      rootMargin: '100px',
-    });
-
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-    return () => observer.disconnect();
-  }, [loadingPages]);
+  const { pages, getHeight, isLoading, isFinished, loaderRef } = useIframePages('hl-height', MAX_HL_PAGES);
 
   return (
     <div className="hl-section">
@@ -221,8 +158,8 @@ function HeadlinesSection() {
       </div>
 
       {pages.map(p => (
-        <div key={p} className="hl-iframe-container" style={{ minHeight: (iframeHeights[p] || 100) + 'px' }}>
-          {loadingPages[p] && (
+        <div key={p} className="hl-iframe-container" style={{ minHeight: getHeight(p) + 'px' }}>
+          {isLoading(p) && (
             <div className="hl-loading">
               <div className="hl-spinner" />
               <span>{p === 1 ? '加载头条中...' : '加载更多中...'}</span>
@@ -232,8 +169,8 @@ function HeadlinesSection() {
             src={`/headlines/${p}`}
             className="hl-iframe"
             style={{
-              height: (iframeHeights[p] || 100) + 'px',
-              opacity: loadingPages[p] ? 0 : 1,
+              height: getHeight(p) + 'px',
+              opacity: isLoading(p) ? 0 : 1,
               transition: 'opacity 0.3s ease'
             }}
             scrolling="no"
@@ -243,7 +180,7 @@ function HeadlinesSection() {
         </div>
       ))}
       <div ref={loaderRef} style={{ height: '10px', width: '100%' }} />
-      {Math.max(...pages) === MAX_HL_PAGES && !loadingPages[MAX_HL_PAGES] && (
+      {isFinished && (
         <div className="hl-end-msg">没有更多内容了</div>
       )}
     </div>

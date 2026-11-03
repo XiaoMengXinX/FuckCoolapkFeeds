@@ -1,49 +1,50 @@
 import { NextResponse } from 'next/server';
 
+const LOCAL_HOST_PATTERN = /^(localhost|127(?:\.\d{1,3}){3}|\[::1\])(?::\d+)?$/i;
+const RESERVED_PATH_PATTERN = /^\/(?:api|feed|iv|reply|headlines|t|_next|picture)(?:\/|$)/;
+const ARCHIVE_UA_PATTERN = /(telegram|archive\.org|ia_archiver)/i;
+
 function redirectToPath(request, url, status = 301) {
-  // Prefer the original public host provided by a reverse proxy. Some tunnel
-  // setups replace Host with localhost:60080, which must never reach visitors.
+  // Some tunnels rewrite Host to an internal localhost address, so prefer the
+  // forwarded public host and never redirect visitors to a local origin.
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0].trim();
   const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0].trim();
-  const isLocalHost = forwardedHost && /^(localhost|127(?:\.\d{1,3}){3}|\[::1\])(?::\d+)?$/i.test(forwardedHost);
-  const origin = forwardedHost && !isLocalHost
+  const origin = forwardedHost && !LOCAL_HOST_PATTERN.test(forwardedHost)
     ? `${forwardedProto || 'https'}://${forwardedHost}`
     : process.env.NODE_ENV === 'development'
       ? request.nextUrl.origin
       : 'https://www.coolapk1s.com';
 
-  const destination = new URL(`${url.pathname}${url.search}`, origin);
-  return NextResponse.redirect(destination, status);
+  return NextResponse.redirect(new URL(`${url.pathname}${url.search}`, origin), status);
 }
 
+function redirectTo(request, pathname, status) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = '';
+  return redirectToPath(request, url, status);
+}
+
+function isSameOriginReferer(request) {
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+  try {
+    return new URL(request.headers.get('referer') || '').host === host;
+  } catch {
+    return false;
+  }
+}
+
+// Mirrors the redirects and rewrites in vercel.json for self-hosted deployments.
 export function proxy(request) {
   const { pathname, search } = request.nextUrl;
 
-  // Security Check: Protect iframe-only content from cross-origin access
-  // Targeted paths: /headlines/[page], /reply/[id], and /t/[tag]/[page]
-  const isIframeContent = 
-    pathname.startsWith('/headlines/') || 
-    pathname.startsWith('/reply/') || 
-    (/^\/t\/[^\/]+\/\d+$/.test(pathname)); // Matches /t/TagName/1 but NOT /t/TagName
+  const isIframeContent =
+    pathname.startsWith('/headlines/') ||
+    pathname.startsWith('/reply/') ||
+    /^\/t\/[^/]+\/\d+$/.test(pathname);
 
-  if (isIframeContent) {
-    // Get the current host (respecting proxies like Vercel/CDN)
-    const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
-    const referer = request.headers.get('referer') || '';
-    
-    let refererHost = '';
-    try {
-      if (referer) {
-        refererHost = new URL(referer).host;
-      }
-    } catch (e) {
-      // Invalid URL in referer
-    }
-
-    const isDev = process.env.NODE_ENV === 'development';
-    if (!isDev && refererHost !== host) {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
+  if (isIframeContent && process.env.NODE_ENV !== 'development' && !isSameOriginReferer(request)) {
+    return new NextResponse('Forbidden', { status: 403 });
   }
 
   const pathMatch = pathname.match(/^\/(feed|picture|iv)\/([^/]+)$/);
@@ -51,70 +52,37 @@ export function proxy(request) {
   if (pathMatch) {
     const [, routeType, id] = pathMatch;
 
-    // Preserve the Vercel redirects for Telegram and Internet Archive clients.
-    if (routeType === 'feed' || routeType === 'picture') {
+    if (routeType !== 'iv') {
       const userAgent = request.headers.get('user-agent') || '';
       const via = request.headers.get('via') || '';
-      if (/(telegram|archive\.org|ia_archiver)/i.test(userAgent) || /archive\.org/i.test(via)) {
-        const url = request.nextUrl.clone();
-        url.pathname = `/iv/${id}`;
-        return redirectToPath(request, url, 307);
+      if (ARCHIVE_UA_PATTERN.test(userAgent) || /archive\.org/i.test(via)) {
+        return redirectTo(request, `/iv/${id}`, 307);
       }
     }
 
-    const idAsNumber = parseInt(id, 10);
-
-    if (isNaN(idAsNumber) || idAsNumber.toString() !== id.replace(/^0+/, '')) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/';
-      url.search = '';
-      return redirectToPath(request, url);
+    if (!/^\d+$/.test(id) || /^0+$/.test(id)) {
+      return redirectTo(request, '/');
     }
 
-    let needsRedirect = false;
-    let normalizedId = id;
+    const normalizedId = id.replace(/^0+/, '');
 
-    const normalizedIdFromNumber = idAsNumber.toString();
-    if (normalizedIdFromNumber !== id) {
-      normalizedId = normalizedIdFromNumber;
-      needsRedirect = true;
-    }
-
-    if (search) {
-      needsRedirect = true;
-    }
-
-    if (needsRedirect) {
-      const url = request.nextUrl.clone();
-      url.pathname = `/${routeType}/${normalizedId}`;
-      url.search = '';
-
-      return redirectToPath(request, url);
-    }
-
-    // Vercel's /picture/:id rewrite is not applied by a self-hosted Next.js
-    // server. Redirect to the existing feed page instead of proxying back to
-    // the internal localhost origin.
     if (routeType === 'picture') {
-      const url = request.nextUrl.clone();
-      url.pathname = `/feed/${normalizedId}`;
-      return redirectToPath(request, url, 307);
+      return redirectTo(request, `/feed/${normalizedId}`, 307);
+    }
+
+    if (normalizedId !== id || search) {
+      return redirectTo(request, `/${routeType}/${normalizedId}`);
     }
   }
 
-  const otherPagesMatch = pathname === '/' || pathname.match(/^\/(headlines|t|reply)\/.*$/);
-  if (otherPagesMatch && search) {
+  if (search && (pathname === '/' || /^\/(headlines|t|reply)\//.test(pathname))) {
     const url = request.nextUrl.clone();
     url.search = '';
     return redirectToPath(request, url);
   }
 
-  // Match the Vercel catch-all redirect for paths outside the app's reserved
-  // prefixes. Keep the path and query string when sending the visitor to Coolapk.
-  const isVercelReservedPath = /^\/(?:api|feed|iv|reply|headlines|t|_next|picture)(?:\/|$)/.test(pathname);
-  if (pathname !== '/' && !isVercelReservedPath) {
-    const destination = new URL(`${pathname}${search}`, 'https://www.coolapk.com');
-    return NextResponse.redirect(destination, 307);
+  if (pathname !== '/' && !RESERVED_PATH_PATTERN.test(pathname)) {
+    return NextResponse.redirect(new URL(`${pathname}${search}`, 'https://www.coolapk.com'), 307);
   }
 
   return NextResponse.next();

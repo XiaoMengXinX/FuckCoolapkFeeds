@@ -1,14 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
-import { processHtmlLinks } from '../../lib/linkProcessor';
-import { getMarkdownRenderer, detectMarkdown } from '../../lib/markdownProcessor';
+import { detectMarkdown } from '../../lib/markdownProcessor';
 import { proxyImage } from '../../lib/imageProxy';
+import { getFeedPlainText } from '../../lib/feedText';
 
 import MetaTags from '../../components/feed/MetaTags';
 import FeedContent from '../../components/feed/FeedContent';
 import { ImageLightbox } from '../../components/feed/ImageLightbox';
 import AISummary from '../../components/feed/AISummary';
 import AdBanner from '../../components/feed/AdBanner';
-import { fetchFeedData } from '../../lib/feedLoader';
+import { fetchFeedData } from '../../lib/internalApi';
 import { generateAISummary } from '../../lib/aiSummary';
 import { optimizeFeedData } from '../../lib/feedOptimizer';
 import { styles } from '../../styles/feedStyles';
@@ -26,18 +26,15 @@ const FeedPage = ({ feed, error, id, aiSummary, adClient, adSlot }) => {
     const [formattedDate, setFormattedDate] = useState('');
     const [isMarkdownEnabled, setIsMarkdownEnabled] = useState(false);
     const [isReplyLoading, setIsReplyLoading] = useState(true);
-    const md = getMarkdownRenderer();
 
     useEffect(() => {
-        const checkIsPC = () => setIsPC(typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
-        const checkIsAndroid = () => setIsAndroid(typeof window !== "undefined" && /Android/i.test(navigator.userAgent));
+        const checkIsPC = () => setIsPC(window.matchMedia("(min-width: 768px)").matches);
         checkIsPC();
-        checkIsAndroid();
+        setIsAndroid(/Android/i.test(navigator.userAgent));
         window.addEventListener('resize', checkIsPC);
         if (feed) {
             setFormattedDate(new Date(feed.dateline * 1000).toLocaleString());
-            let contentToCheck = (feed.feedType === 'feedArticle' && feed.message_raw_output) ? JSON.parse(feed.message_raw_output).filter(p => p.type === 'text').map(p => p.message).join('\n') : feed.message || '';
-            if (detectMarkdown(contentToCheck)) setIsMarkdownEnabled(true);
+            setIsMarkdownEnabled(detectMarkdown(getFeedPlainText(feed)));
         }
         return () => window.removeEventListener('resize', checkIsPC);
     }, [feed]);
@@ -58,13 +55,12 @@ const FeedPage = ({ feed, error, id, aiSummary, adClient, adSlot }) => {
     }, []);
 
     useEffect(() => {
-        // Listen for messages from the reply iframe via postMessage
         const onMessage = (e) => {
+            if (e.origin !== window.location.origin) return;
             if (e.data?.type === 'reply-height' && iframeRef.current) {
                 iframeRef.current.style.height = e.data.height + 'px';
                 setIsReplyLoading(false);
-            } else if (e.data?.type === 'image-click') {
-                // Trigger the parent's lightbox using the images and index from the iframe
+            } else if (e.data?.type === 'image-click' && Array.isArray(e.data.images) && e.data.images.length > 0) {
                 handleImageClick(e.data.images, e.data.index);
             }
         };
@@ -111,18 +107,12 @@ const FeedPage = ({ feed, error, id, aiSummary, adClient, adSlot }) => {
                     </div>
                 </div>
             )}
-            {aiSummary && (
-                <AISummary summary={aiSummary.text} model={aiSummary.model} />
-            )}
+            <AISummary summary={aiSummary?.text} model={aiSummary?.model} />
             <div style={styles.content}>
                 <FeedContent
                     feed={feed}
-                    isTelegram={false}
-                    isPC={() => isPC}
+                    isPC={isPC}
                     onImageClick={handleImageClick}
-                    md={md}
-                    processHtmlLinks={processHtmlLinks}
-                    styles={styles}
                     isMarkdownEnabled={isMarkdownEnabled}
                 />
             </div>
@@ -165,7 +155,7 @@ const FeedPage = ({ feed, error, id, aiSummary, adClient, adSlot }) => {
                     <AdBanner adClient={adClient} adSlot={adSlot} />
                 </>
             )}
-            {isBarVisible && id && (
+            {isBarVisible && (
                 <div style={styles.floatingBarContainer}>
                     <div style={styles.floatingBar}>
                         <a
@@ -213,33 +203,21 @@ export async function getServerSideProps(context) {
     const { res, params, req } = context;
     const { id } = params;
 
-    const data = await fetchFeedData(id, req);
-
-    // Generate AI summary if feed data is available
+    const { feed, error } = await fetchFeedData(id, req);
     let aiSummary = null;
-    if (data.props.feed) {
-        aiSummary = await generateAISummary(data.props.feed);
-    }
 
-    // Optimize feed data to reduce page size
-    const optimizedFeed = optimizeFeedData(data.props.feed);
-
-    if (data.props.feed) {
-        res.setHeader(
-            'Cache-Control',
-            'public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600');
+    if (feed) {
+        aiSummary = await generateAISummary(feed);
+        res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600');
     } else {
         res.statusCode = 404;
-        res.setHeader(
-            'Cache-Control',
-            'public, max-age=60, s-maxage=60, stale-while-revalidate=0'
-        );
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=0');
     }
 
     return {
         props: {
-            feed: optimizedFeed,
-            error: data.props.error,
+            feed: optimizeFeedData(feed),
+            error,
             id,
             aiSummary,
             adClient: process.env.ADSENSE_PUBLISHER_ID ?? null,

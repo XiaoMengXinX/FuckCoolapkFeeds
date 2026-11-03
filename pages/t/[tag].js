@@ -1,63 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { styles } from '../../styles/homeStyles';
+import { useIframePages } from '../../lib/useIframePages';
 
 const MAX_TAG_PAGES = 5;
 
 export default function TagFeedContainer() {
     const router = useRouter();
     const { tag } = router.query;
-    const [pages, setPages] = useState([1]);
-    const [iframeHeights, setIframeHeights] = useState({ 1: 100 });
-    const [loadingPages, setLoadingPages] = useState({ 1: true });
-    const [hasMore, setHasMore] = useState(true);
-    const [isTagEmpty, setIsTagEmpty] = useState(false);
-    const loaderRef = useRef(null);
-
-    useEffect(() => {
-        const onMessage = (e) => {
-            if (e.data?.type === 'tag-height') {
-                const page = e.data.page || 1;
-                setIframeHeights(prev => ({ ...prev, [page]: e.data.height }));
-                setLoadingPages(prev => ({ ...prev, [page]: false }));
-
-                // If the first page is empty, don't load more and show empty message
-                if (page === 1 && e.data.isEmpty) {
-                    setHasMore(false);
-                    setIsTagEmpty(true);
-                }
-            }
-        };
-        window.addEventListener('message', onMessage);
-        return () => window.removeEventListener('message', onMessage);
-    }, []);
-
-    useEffect(() => {
-        if (!tag) return;
-
-        const observer = new IntersectionObserver((entries) => {
-            const target = entries[0];
-            if (target.isIntersecting && hasMore) {
-                setPages(prevPages => {
-                    const currentMaxPage = Math.max(...prevPages);
-                    if (currentMaxPage < MAX_TAG_PAGES && !loadingPages[currentMaxPage]) {
-                        const nextPage = currentMaxPage + 1;
-                        setLoadingPages(prev => ({ ...prev, [nextPage]: true }));
-                        return [...prevPages, nextPage];
-                    }
-                    return prevPages;
-                });
-            }
-        }, {
-            rootMargin: '100px',
-        });
-
-        if (loaderRef.current) {
-            observer.observe(loaderRef.current);
-        }
-        return () => observer.disconnect();
-    }, [tag, loadingPages]);
+    const { pages, getHeight, isLoading, isEmpty, isFinished, loaderRef } = useIframePages('tag-height', MAX_TAG_PAGES, Boolean(tag));
 
     if (!tag) return null;
 
@@ -69,7 +20,6 @@ export default function TagFeedContainer() {
             </Head>
 
             <main className="main" style={{ paddingTop: '12px' }}>
-                {/* Tag Header Section */}
                 <div className="tag-header" style={{ padding: '12px 16px' }}>
                     <div className="tag-avatar">
                         <div className="tag-avatar-inner">#</div>
@@ -91,12 +41,12 @@ export default function TagFeedContainer() {
                         </div>
                     </div>
 
-                    {isTagEmpty ? (
+                    {isEmpty ? (
                         <div className="hl-empty-msg">该话题不存在</div>
                     ) : (
                         pages.map(p => (
-                            <div key={p} className="hl-iframe-container" style={{ minHeight: (iframeHeights[p] || 100) + 'px' }}>
-                                {loadingPages[p] && (
+                            <div key={p} className="hl-iframe-container" style={{ minHeight: getHeight(p) + 'px' }}>
+                                {isLoading(p) && (
                                     <div className="hl-loading">
                                         <div className="hl-spinner" />
                                         <span>{p === 1 ? '加载话题中...' : '加载更多中...'}</span>
@@ -106,8 +56,8 @@ export default function TagFeedContainer() {
                                     src={`/t/${encodeURIComponent(tag)}/${p}`}
                                     className="hl-iframe"
                                     style={{
-                                        height: (iframeHeights[p] || 100) + 'px',
-                                        opacity: loadingPages[p] ? 0 : 1,
+                                        height: getHeight(p) + 'px',
+                                        opacity: isLoading(p) ? 0 : 1,
                                         transition: 'opacity 0.3s ease'
                                     }}
                                     scrolling="no"
@@ -117,8 +67,8 @@ export default function TagFeedContainer() {
                             </div>
                         ))
                     )}
-                    {!isTagEmpty && <div ref={loaderRef} style={{ height: '10px', width: '100%' }} />}
-                    {!isTagEmpty && Math.max(...pages) === MAX_TAG_PAGES && !loadingPages[MAX_TAG_PAGES] && (
+                    {!isEmpty && <div ref={loaderRef} style={{ height: '10px', width: '100%' }} />}
+                    {!isEmpty && isFinished && (
                         <div className="hl-end-msg">没有更多内容了</div>
                     )}
                 </div>

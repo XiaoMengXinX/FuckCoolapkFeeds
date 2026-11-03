@@ -485,31 +485,21 @@ a:active {
 /* Feed page dark mode overrides for inline styles */
 @media (prefers-color-scheme: dark) {
 
-  /* Override container text color */
   div[style*="color: rgb(51, 51, 51)"],
   div[style*="color:#333"] {
     color: #e0e0e0 !important;
   }
 
-  /* Override header border */
   div[style*="border-bottom: 1px solid rgb(238, 238, 238)"],
   div[style*="border-bottom:1px solid #eee"] {
     border-bottom: 1px solid #444 !important;
   }
 
-  /* Override dateline color */
   div[style*="color: rgb(136, 136, 136)"],
   div[style*="color:#888"] {
     color: #999 !important;
   }
 
-  /* Override image description color */
-  div[style*="color: rgb(102, 102, 102)"],
-  div[style*="color:#666"] {
-    color: #999 !important;
-  }
-
-  /* Override switch label color */
   span[style*="color: rgb(51, 51, 51)"],
   span[style*="color:#333"] {
     color: #e0e0e0 !important;
@@ -676,29 +666,20 @@ a:active {
 /* Product Album Card - Dark Mode Styles */
 @media (prefers-color-scheme: dark) {
 
-  /* Thumbnail container background and border */
-  div[style*="backgroundColor: rgb(245, 245, 245)"],
-  div[style*="backgroundColor:#f5f5f5"] {
-    background-color: #2d2d2d !important;
-  }
-
   div[style*="border: 1px solid rgb(224, 224, 224)"],
   div[style*="border:1px solid #e0e0e0"] {
     border-color: #444 !important;
   }
 
-  /* Product specs text color */
   div[style*="color: rgb(102, 102, 102)"],
   div[style*="color:#666"] {
     color: #aaa !important;
   }
 
-  /* Image error container */
   .image-error-container svg {
     color: var(--icon-color) !important;
   }
 
-  /* Preview image error placeholder */
   .preview-image-error {
     border: var(--image-border) !important;
   }
@@ -707,7 +688,6 @@ a:active {
     color: var(--icon-color) !important;
   }
 
-  /* Compact loading state */
   .compact-loading {
     background-color: #2d2d2d !important;
   }
@@ -732,4 +712,18 @@ a:active {
   border-top-color: var(--reply-link);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+/* On PC the grid fits the viewport (minus ~370px of page chrome) while keeping cells square. */
+@media (min-width: 768px) {
+  .feed-image-grid {
+    --grid-max-height: max(100vh - 370px, 300px);
+    max-height: var(--grid-max-height);
+    max-width: calc((var(--grid-max-height) - (var(--grid-rows) - 1) * 8px) / var(--grid-rows) * var(--grid-cols) + (var(--grid-cols) - 1) * 8px);
+    margin: 20px auto;
+  }
+
+  .feed-single-image {
+    max-width: 500px;
+  }
 }

@@ -1,14 +1,21 @@
 import { Html, Head, Main, NextScript } from 'next/document';
 
-// Rendered on the server only; reads server-side env vars safely.
+// Instant View pages carry their own inline styles, so the global stylesheet is left out of them.
+class DocumentHead extends Head {
+    getCssLinks(files) {
+        if (this.context.__NEXT_DATA__.page.startsWith('/iv/')) return null;
+        return super.getCssLinks(files);
+    }
+}
+
 export default function Document({ adsensePublisherId }) {
     return (
         <Html>
-            <Head>
+            <DocumentHead>
                 {adsensePublisherId && (
                     <meta name="google-adsense-account" content={adsensePublisherId} />
                 )}
-            </Head>
+            </DocumentHead>
             <body>
                 <Main />
                 <NextScript />

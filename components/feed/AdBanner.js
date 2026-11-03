@@ -1,38 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import Script from 'next/script';
 
-/**
- * Renders a Google AdSense fluid ad unit.
- * Automatically hides itself when the ad is unfilled or blocked.
- * Requires adClient and adSlot props passed from the server via env vars.
- */
 export default function AdBanner({ adClient, adSlot }) {
-    const insRef = useRef(null);
-    const [hidden, setHidden] = useState(false);
-
     useEffect(() => {
         if (!adClient || !adSlot) return;
 
         try {
             (window.adsbygoogle = window.adsbygoogle || []).push({});
-        } catch (e) {
-            // Ignore adsbygoogle errors in dev or ad-blocked environments
-        }
-
-        // const ins = insRef.current;
-        // if (!ins) return;
-
-        // // Watch for Google's data-ad-status attribute.
-        // // Google sets it to "unfilled" when there is no ad to show.
-        // const observer = new MutationObserver(() => {
-        //     const status = ins.getAttribute('data-ad-status');
-        //     if (status === 'unfilled') setHidden(true);
-        // });
-        // observer.observe(ins, { attributes: true, attributeFilter: ['data-ad-status'] });
-
-        // return () => {
-        //     observer.disconnect();
-        // };
+        } catch { }
     }, [adClient, adSlot]);
 
     if (!adClient || !adSlot) return null;
@@ -46,7 +21,6 @@ export default function AdBanner({ adClient, adSlot }) {
                 strategy="afterInteractive"
             />
             <ins
-                ref={insRef}
                 className="adsbygoogle"
                 style={{ display: 'block' }}
                 data-ad-format="fluid"

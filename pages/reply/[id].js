@@ -1,11 +1,8 @@
 import Head from 'next/head';
-import { useEffect } from 'react';
 import ReplyList, { ReplyListStyles } from '../../components/feed/ReplyList';
-import { fetchHotReplies } from '../../lib/hotReplyLoader';
+import { fetchHotReplies } from '../../lib/internalApi';
 import { optimizeReplyData } from '../../lib/feedOptimizer';
 
-// CSS variables and base styles for the reply iframe page.
-// Mirrors the original hand-crafted HTML template exactly.
 const ReplyPageStyles = `
 @keyframes spin {
     0%   { transform: rotate(0deg); }
@@ -32,7 +29,6 @@ body {
 }
 img { max-width: 100%; border: 0; }
 p { margin: 0; }
-/* LazyImage component styles */
 .lazy-image-loading {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; align-items: center; justify-content: center;
@@ -59,30 +55,12 @@ p { margin: 0; }
 }
 `;
 
-
 const ReplyPage = ({ replies }) => {
-    useEffect(() => {
-        // Frame Guard: Ensure the page is only shown if it's NOT in an iframe OR in a same-origin iframe
-        try {
-            if (window.self !== window.top) {
-                const sameOrigin = window.top.location.host === window.location.host;
-                if (!sameOrigin) {
-                    document.body.innerHTML = '';
-                    return;
-                }
-            }
-        } catch (e) {
-            document.body.innerHTML = '';
-            return;
-        }
-    }, []);
-
     return (
         <>
             <Head>
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                {/* Inject all styles via dangerouslySetInnerHTML to bypass styled-jsx limitations */}
                 <style dangerouslySetInnerHTML={{ __html: ReplyPageStyles + ReplyListStyles }} />
             </Head>
             <ReplyList replies={replies} />

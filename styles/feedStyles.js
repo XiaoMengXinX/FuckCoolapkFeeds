@@ -249,7 +249,6 @@ export const styles = {
         display: 'grid',
         gap: '8px',
         width: '100%',
-        maxWidth: '100%',
         justifyContent: 'center',
         alignContent: 'center',
     },
@@ -326,28 +325,6 @@ export const styles = {
         fontSize: '14px',
         zIndex: 2001,
     },
-    imagePlaceholder: {
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'var(--image-bg)',
-        borderRadius: '4px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: 'none',
-    },
-    placeholderLoader: {
-        width: '24px',
-        height: '24px',
-        borderRadius: '50%',
-        border: '2px solid #e9ecef',
-        borderTop: '2px solid #28a745',
-        animation: 'spin 1s linear infinite',
-    },
-    placeholderDot: {
-        display: 'none', // 隐藏，因为我们使用边框动画
-    },
-    // Product Album Card styles
     goodsContainer: {
         display: 'flex',
         flexDirection: 'column',

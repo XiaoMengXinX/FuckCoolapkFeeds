@@ -1,130 +1,92 @@
 import { LazyImage } from './LazyImage';
 import { ImageGrid } from './ImageGrid';
 import { decodeEntities } from '../../lib/markdownProcessor';
-import { proxyImage } from '../../lib/imageProxy';
+import { useMarkdownRenderer } from '../../lib/useMarkdownRenderer';
+import { processHtmlLinks } from '../../lib/linkProcessor';
+import { proxyImage, getImageSize } from '../../lib/imageProxy';
+import { parseArticleParts } from '../../lib/feedText';
+import { styles } from '../../styles/feedStyles';
 import ProductAlbumCard from './ProductAlbumCard';
 
-const FeedContent = ({ feed, isTelegram, isPC, onImageClick, md, processHtmlLinks, styles, isMarkdownEnabled, imageUrls = [] }) => {
+const STANDARD_FEED_TYPES = ['feed', 'comment', 'picture', 'question', 'answer', 'rating'];
+
+const FeedContent = ({ feed, isPC, onImageClick, isMarkdownEnabled }) => {
+    const md = useMarkdownRenderer(isMarkdownEnabled);
+
     if (!feed) {
         return <div style={styles.centered}>你查看的内容不存在或已被删除</div>;
     }
 
-    const renderArticleContent = (messageRaw) => {
-        try {
-            const messageParts = JSON.parse(messageRaw);
-            return messageParts.map((part, index) => {
-                if (part.type === 'text') {
-                    const formattedMessage = part.message.replace(/\\n/g, '\n');
-                    let htmlMessage = formattedMessage.replace(/\n/g, '<br />');
+    const renderText = (text, key) => isMarkdownEnabled && md ? (
+        <div
+            key={key}
+            className="markdown-content"
+            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(text).replace(/\n/g, '  \n')) }}
+        />
+    ) : (
+        <div
+            key={key}
+            style={styles.textBlock}
+            dangerouslySetInnerHTML={{ __html: processHtmlLinks(text.replace(/\n/g, '<br />')) }}
+        />
+    );
 
-                    return isMarkdownEnabled ? (
-                        <div
-                            className="markdown-content"
-                            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(formattedMessage).replace(/\n/g, '  \n')) }}
-                        />
-                    ) : (
-                        <div
-                            key={index}
-                            style={styles.textBlock}
-                            dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage) }}
-                        />
-                    );
-                } else if (part.type === 'image') {
-                    const imageUrl = proxyImage(part.url);
-                    if (isTelegram) {
-                        return (
-                            <div key={index} style={styles.imageContainer}>
-                                <img src={imageUrl} alt={part.description || `feed-image-${index}`} style={styles.image} />
-                                {part.description && <div style={styles.imageDescription}>{part.description}</div>}
-                            </div>
-                        );
-                    }
-                    const allImages = JSON.parse(feed.message_raw_output).filter(p => p.type === 'image');
-                    const imageIndex = allImages.findIndex(img => img.url === part.url);
-
-                    return (
-                        <div key={index} style={styles.imageContainer}>
-                            <LazyImage
-                                src={imageUrl}
-                                alt={part.description || `feed-image-${index}`}
-                                style={{ ...(isPC() ? { ...styles.image, maxWidth: '70%', maxHeight: '800px' } : styles.image), cursor: 'pointer' }}
-                                onClick={() => {
-                                    const processedImages = allImages.map(p => proxyImage(p.url));
-                                    onImageClick(processedImages, imageIndex);
-                                }}
-                                enableLongImageCollapse={true}
-                            />
-                            {part.description && <div style={styles.imageDescription}>{part.description}</div>}
-                        </div>
-                    );
-                }
-                return null;
-            });
-        } catch (e) {
-            let fallbackHtml = feed.message.replace(/\\n/g, '<br />');
-            return <div style={{ whiteSpace: 'pre-wrap' }} dangerouslySetInnerHTML={{ __html: fallbackHtml }} />;
+    const renderArticleContent = () => {
+        const parts = parseArticleParts(feed);
+        if (!parts) {
+            return <div style={{ whiteSpace: 'pre-wrap' }} dangerouslySetInnerHTML={{ __html: (feed.message || '').replace(/\\n/g, '<br />') }} />;
         }
-    };
 
-    // Render product album goods if available
-    const renderProductAlbum = () => {
-        if (!feed.productAlbumDetailInfo || feed.productAlbumDetailInfo.length === 0) return null;
+        const articleImages = parts.filter(p => p.type === 'image').map(p => proxyImage(p.url));
+        const imageStyle = {
+            ...(isPC ? { ...styles.image, maxWidth: '70%', maxHeight: '800px' } : styles.image),
+            cursor: 'pointer',
+        };
+        let imageIndex = 0;
 
-        return <ProductAlbumCard goods={feed.productAlbumDetailInfo} styles={styles} onImageClick={onImageClick} />;
-    };
-
-    const renderStandardFeed = () => {
-        let htmlMessage = feed.message;
-
-        return (
-            <div>
-                {isMarkdownEnabled ? (
-                    <div
-                        className="markdown-content"
-                        dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(htmlMessage).replace(/\n/g, '  \n')) }}
-                    />
-                ) : (
-                    <div style={styles.textBlock} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage.replace(/\n/g, '<br />')) }} />
-                )}
-                {feed.picArr && feed.picArr.length > 0 && (
-                    isTelegram ? (
-                        <div>
-                            {feed.picArr.map((img, index) => (
-                                <div key={index} style={styles.imageContainer}>
-                                    <img src={proxyImage(img)} alt={`image-${index}`} style={styles.image} />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <ImageGrid
-                            images={feed.picArr.map(proxyImage)}
-                            onImageClick={(images, currentIndex) => onImageClick(images, currentIndex)}
+        return parts.map((part, index) => {
+            if (part.type === 'text') {
+                return renderText(part.message.replace(/\\n/g, '\n'), index);
+            }
+            if (part.type === 'image') {
+                const currentIndex = imageIndex++;
+                return (
+                    <div key={index} style={styles.imageContainer}>
+                        <LazyImage
+                            src={proxyImage(part.url, 'm')}
+                            size={getImageSize(part.url)}
+                            alt={part.description || `feed-image-${index}`}
+                            style={imageStyle}
+                            onClick={() => onImageClick(articleImages, currentIndex)}
+                            enableLongImageCollapse
                         />
-                    )
-                )}
-            </div>
-        );
+                        {part.description && <div style={styles.imageDescription}>{part.description}</div>}
+                    </div>
+                );
+            }
+            return null;
+        });
     };
+
+    const renderStandardFeed = () => (
+        <div>
+            {renderText(feed.message || '')}
+            <ImageGrid images={feed.picArr || []} onImageClick={onImageClick} />
+        </div>
+    );
+
+    const productAlbum = <ProductAlbumCard goods={feed.productAlbumDetailInfo} onImageClick={onImageClick} />;
 
     if (feed.feedType === 'feedArticle') {
-        return (
-            <>
-                {renderArticleContent(feed.message_raw_output)}
-                {renderProductAlbum()}
-            </>
-        );
-    } else if (feed.feedType === 'productAlbum') {
-        return (
-            <>
-                {renderStandardFeed()}
-                {renderProductAlbum()}
-            </>
-        );
-    } else if (['feed', 'comment', 'picture', 'question', 'answer', 'rating'].includes(feed.feedType)) {
-        return renderStandardFeed();
-    } else {
-        return <div style={styles.centered}>Unsupported feed type: {feed.feedType}</div>;
+        return <>{renderArticleContent()}{productAlbum}</>;
     }
+    if (feed.feedType === 'productAlbum') {
+        return <>{renderStandardFeed()}{productAlbum}</>;
+    }
+    if (STANDARD_FEED_TYPES.includes(feed.feedType)) {
+        return renderStandardFeed();
+    }
+    return <div style={styles.centered}>Unsupported feed type: {feed.feedType}</div>;
 };
 
 export default FeedContent;

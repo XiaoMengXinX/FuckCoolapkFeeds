@@ -1,76 +1,11 @@
-import Head from 'next/head';
-import { useEffect } from 'react';
-import { optimizeFeedListData } from '../../lib/feedOptimizer';
-import { FeedCard, FeedCardStyles } from '../../components/feed/FeedCard';
+import FeedListFrame from '../../components/feed/FeedListFrame';
+import { fetchFeedList } from '../../lib/internalApi';
 
 const MAX_PAGES = 3;
 
-function reportHeight() {
-    if (typeof window === 'undefined') return;
-    const height = document.documentElement.scrollHeight;
-    const match = window.location.pathname.match(/\/headlines\/(\d+)/);
-    const page = match ? parseInt(match[1]) : 1;
-    if (window.parent !== window) {
-        window.parent.postMessage({ type: 'hl-height', height, page }, '*');
-    }
-}
-
-const HeadlinesPage = ({ feeds, error, currentPage, totalPages }) => {
-    useEffect(() => {
-        // Frame Guard: Ensure the page is only shown if it's NOT in an iframe OR in a same-origin iframe
-        try {
-            if (window.self !== window.top) {
-                // If we are in an iframe, check if the parent is same-origin
-                // Note: accessing window.top.location might throw if cross-origin
-                const sameOrigin = window.top.location.host === window.location.host;
-                if (!sameOrigin) {
-                    document.body.innerHTML = '';
-                    return;
-                }
-            }
-        } catch (e) {
-            // Cross-origin access to window.top.location throws SecurityError
-            document.body.innerHTML = '';
-            return;
-        }
-
-        // Report initial height after render
-        reportHeight();
-
-        // Observe DOM size changes and keep height in sync
-        const ro = new ResizeObserver(() => reportHeight());
-        ro.observe(document.body);
-
-        return () => {
-            ro.disconnect();
-        };
-    }, [feeds]);
-
-    if (error) {
-        return (
-            <div style={styles.errorContainer}>
-                <p style={styles.errorText}>加载失败: {error}</p>
-                <style jsx global>{FeedCardStyles}</style>
-            </div>
-        );
-    }
-
-    return (
-        <div style={styles.container}>
-            <Head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            </Head>
-
-            <div style={styles.list}>
-                {feeds.map((feed) => (
-                    <FeedCard key={feed.id} feed={feed} />
-                ))}
-            </div>
-
-            <style jsx global>{FeedCardStyles}</style>
-        </div>
-    );
-};
+const HeadlinesPage = ({ feeds, error, page }) => (
+    <FeedListFrame feeds={feeds} error={error} page={page} messageType="hl-height" />
+);
 
 export async function getServerSideProps({ req, res, params }) {
     const page = parseInt(params.page, 10);
@@ -79,75 +14,16 @@ export async function getServerSideProps({ req, res, params }) {
         return { notFound: true };
     }
 
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
     try {
-        const protocol = req.headers['x-forwarded-proto'] || 'http';
-        const host = req.headers['x-forwarded-host'] || req.headers.host;
-        const baseUrl = `${protocol}://${host}`;
-
-        const token = process.env.INTERNAL_AUTH_TOKEN || '';
-        const headers = token ? { 'X-Internal-Auth': token } : {};
-
-        const apiRes = await fetch(`${baseUrl}/api/headlines?page=${page}`, { headers });
-        if (!apiRes.ok) {
-            throw new Error(`API returned ${apiRes.status}`);
-        }
-
-        const json = await apiRes.json();
-        const feeds = (json.data || [])
-            .filter(f => f.entityType === 'feed')
-            .map(optimizeFeedListData);
-
-        res.setHeader(
-            'Cache-Control',
-            'public, max-age=3600, s-maxage=7200, stale-while-revalidate=0'
-        );
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-
-        return {
-            props: {
-                feeds,
-                currentPage: page,
-                totalPages: MAX_PAGES,
-                error: null,
-            }
-        };
+        const feeds = await fetchFeedList(req, `headlines?page=${page}`);
+        res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=7200, stale-while-revalidate=0');
+        return { props: { feeds, page, error: null } };
     } catch (err) {
-        res.setHeader(
-            'Cache-Control',
-            'public, max-age=60, s-maxage=60, stale-while-revalidate=0'
-        );
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-        return {
-            props: {
-                feeds: [],
-                currentPage: page,
-                totalPages: MAX_PAGES,
-                error: err.message,
-            }
-        };
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=0');
+        return { props: { feeds: [], page, error: err.message } };
     }
 }
-
-const styles = {
-    container: {
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '12px 0 0 0',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    },
-    list: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-    },
-    errorContainer: {
-        padding: '32px 16px',
-        textAlign: 'center',
-    },
-    errorText: {
-        color: '#999',
-        fontSize: '14px',
-    },
-};
 
 export default HeadlinesPage;

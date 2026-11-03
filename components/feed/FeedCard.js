@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { proxyImage } from '../../lib/imageProxy';
+import { proxyImage, proxyPreviewImage } from '../../lib/imageProxy';
 import { LazyImage } from './LazyImage';
 import { processCoolapkEmoji } from '../../lib/emojiProcessor';
 import { timeAgo } from '../../lib/dateUtils';
 
-// Renders relative time client-side only, using the browser's local timezone.
 function ClientTimeAgo({ ts }) {
     const [text, setText] = useState('');
     useEffect(() => {
@@ -13,15 +12,13 @@ function ClientTimeAgo({ ts }) {
     return <span suppressHydrationWarning>{text}</span>;
 }
 
-export function stripHtml(html) {
+function stripHtml(html) {
     if (!html) return '';
-    // Replace <a> tags with styled spans to keep link text visible/colored
     const withLinks = html.replace(/<a\b[^>]*>(.*?)<\/a>/g, '<span style="color:var(--link)">$1</span>');
-    // Strip all other HTML tags except the newly created spans
     return withLinks.replace(/<(?!\/?span\b)[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
 
-export const FeedExcerpt = ({ text, hasTitle }) => {
+const FeedExcerpt = ({ text, hasTitle }) => {
     const textRef = useRef(null);
     const [isTruncated, setIsTruncated] = useState(false);
 
@@ -29,7 +26,6 @@ export const FeedExcerpt = ({ text, hasTitle }) => {
         const checkTruncation = () => {
             const el = textRef.current;
             if (el) {
-                // Determine if text overflows the line clamps
                 setIsTruncated(el.scrollHeight > el.clientHeight);
             }
         };
@@ -56,7 +52,6 @@ export const FeedCard = ({ feed }) => {
     let titleText = feed.message_title;
     let bodyText = rawMessage;
 
-    // Extract title from 【】 if available and no message_title
     if (!titleText) {
         const titleMatch = rawMessage.match(/^(【.*?】)\s*(.*)/s);
         if (titleMatch) {
@@ -65,21 +60,16 @@ export const FeedCard = ({ feed }) => {
         }
     }
 
-    // Strip HTML and check if very long to show "查看更多"
     bodyText = stripHtml(bodyText);
-
-    // Process Emojis
     titleText = processCoolapkEmoji(titleText);
     bodyText = processCoolapkEmoji(bodyText);
 
-    // Photos
     const pics = feed.picArr || (feed.pic ? [feed.pic] : []);
     const displayPics = pics.slice(0, 3);
     const hasMorePics = pics.length > 3;
 
     return (
         <a href={`/feed/${feed.id}`} className="hl-card" target="_top" rel="noopener noreferrer">
-            {/* Header */}
             <div className="hl-header">
                 <div className="hl-avatar-wrap">
                     <LazyImage
@@ -123,7 +113,6 @@ export const FeedCard = ({ feed }) => {
                 </div>
             </div>
 
-            {/* Content */}
             <div className="hl-body">
                 {titleText && (
                     <div
@@ -134,13 +123,12 @@ export const FeedCard = ({ feed }) => {
                 {bodyText && <FeedExcerpt text={bodyText} hasTitle={!!titleText} />}
             </div>
 
-            {/* Images Grid */}
             {displayPics.length > 0 && (
                 <div className={`hl-pic-grid hl-pic-count-${displayPics.length}`}>
                     {displayPics.map((pic, idx) => (
                         <div className="hl-pic-item" key={idx}>
                             <LazyImage
-                                src={proxyImage(pic)}
+                                src={proxyPreviewImage(pic)}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -156,7 +144,6 @@ export const FeedCard = ({ feed }) => {
                 </div>
             )}
 
-            {/* Footer */}
             <div className="hl-footer">
                 {feed.ttitle ? (
                     <span
@@ -164,7 +151,7 @@ export const FeedCard = ({ feed }) => {
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const cleanTag = (feed.ttitle || '').replace(/\s+/g, '');
+                            const cleanTag = feed.ttitle.replace(/\s+/g, '');
                             window.top.location.href = `/t/${encodeURIComponent(cleanTag)}`;
                         }}
                     >
@@ -349,7 +336,6 @@ export const FeedCardStyles = `
         overflow: hidden;
     }
 
-    /* Elegant CSS Fade-out Truncation */
     .hl-excerpt-container {
         font-size: 15px;
         color: var(--hl-excerpt-color);
@@ -378,12 +364,11 @@ export const FeedCardStyles = `
         right: 0;
         display: flex;
         align-items: center;
-        background: var(--hl-bg); /* Solid background to completely mask the characters underneath */
+        background: var(--hl-bg);
         padding-left: 4px;
         transition: background 0.15s ease;
     }
     
-    /* Before element creates a very soft but quick gradient leading into the solid block */
     .hl-excerpt-more-fade::before {
         content: "";
         position: absolute;
@@ -395,7 +380,6 @@ export const FeedCardStyles = `
         pointer-events: none;
     }
 
-    /* Provide a subtle text hint on top of the solid block */
     .hl-excerpt-more-fade::after {
         content: "...查看更多";
         position: relative;
@@ -404,7 +388,6 @@ export const FeedCardStyles = `
         line-height: inherit;
     }
 
-    /* Hover backgrounds */
     .hl-card:hover .hl-excerpt-more-fade {
         background: var(--hl-card-hover-bg);
     }
@@ -426,7 +409,7 @@ export const FeedCardStyles = `
 
     @media (min-width: 600px) {
         .hl-pic-grid {
-            max-width: 480px; /* Constrain grid width on desktop */
+            max-width: 480px;
         }
     }
 

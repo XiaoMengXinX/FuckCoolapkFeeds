@@ -14,10 +14,10 @@ const generateOgDescription = (message) => {
     return cleanMessage;
 };
 
-export const OgTags = ({ feed }) => {
-    if (!feed) return null;
+const getFeedTitle = (feed) => feed.feedType === 'feedArticle' ? feed.message_title : feed.title;
 
-    const title = feed.feedType === 'feedArticle' ? feed.message_title : feed.title;
+const OgTags = ({ feed }) => {
+    const title = getFeedTitle(feed);
     const description = generateOgDescription(feed.message);
     const coverImage = feed.message_cover || (feed.picArr && feed.picArr.length > 0 ? feed.picArr[0] : null);
 
@@ -37,9 +37,7 @@ export const OgTags = ({ feed }) => {
     );
 };
 
-export const TelegramInstantViewTags = ({ feed }) => {
-    if (!feed) return null;
-
+const TelegramInstantViewTags = ({ feed }) => {
     const publishedTime = new Date(feed.dateline * 1000).toISOString();
 
     return (
@@ -51,18 +49,21 @@ export const TelegramInstantViewTags = ({ feed }) => {
     );
 };
 
-// A component that combines all meta tags for simplicity
-const MetaTags = ({ feed, isTelegram }) => {
-    return (
-        <Head>
-            {!isTelegram && (
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-            )}
-            <title>{feed ? `${feed.feedType === 'feedArticle' ? feed.message_title : feed.title} - Coolapk1s` : '出错了 - Coolapk1s'}</title>
-            <OgTags feed={feed} />
-            {isTelegram && <TelegramInstantViewTags feed={feed} />}
-        </Head>
-    );
-};
+const MetaTags = ({ feed, isTelegram }) => (
+    <Head>
+        {!isTelegram && (
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        )}
+        {feed ? (
+            <>
+                <title>{`${getFeedTitle(feed)} - Coolapk1s`}</title>
+                <OgTags feed={feed} />
+                {isTelegram && <TelegramInstantViewTags feed={feed} />}
+            </>
+        ) : (
+            <title>出错了 - Coolapk1s</title>
+        )}
+    </Head>
+);
 
 export default MetaTags;

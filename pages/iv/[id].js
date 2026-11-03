@@ -1,150 +1,27 @@
-import MetaTags from '../../components/feed/MetaTags';
-import { fetchFeedData } from '../../lib/feedLoader';
 import Head from 'next/head';
+import MetaTags from '../../components/feed/MetaTags';
+import { fetchFeedData } from '../../lib/internalApi';
 import { processHtmlLinks } from '../../lib/linkProcessor';
-import { getMarkdownRenderer, detectMarkdown, decodeEntities } from '../../lib/markdownProcessor';
+import { detectMarkdown, decodeEntities } from '../../lib/markdownProcessor';
+import { getMarkdownRenderer } from '../../lib/markdownRenderer';
 import { proxyImage } from '../../lib/imageProxy';
+import { getFeedPlainText, parseArticleParts } from '../../lib/feedText';
 
-
-// 获取markdown渲染器实例
 const md = getMarkdownRenderer();
 
-// 禁用此页面的客户端 JavaScript
 export const config = {
     unstable_runtimeJS: false
 };
 
+const LEVEL_LABELS = {
+    1: '🏆夯',
+    2: '🆙顶级',
+    3: '👑人上人',
+    4: '🚶🏻‍➡️NPC',
+    5: '💩拉'
+};
+
 const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
-    // Render product album as simplified list
-    const renderProductAlbum = () => {
-        if (!feed.productAlbumDetailInfo || feed.productAlbumDetailInfo.length === 0) return null;
-
-        // Group by level
-        const groupedByLevel = feed.productAlbumDetailInfo.reduce((acc, item) => {
-            if (!acc[item.level]) {
-                acc[item.level] = [];
-            }
-            acc[item.level].push(item);
-            return acc;
-        }, {});
-
-        // Level labels
-        const levelLabels = {
-            1: '🏆夯',
-            2: '🆙顶级',
-            3: '👑人上人',
-            4: '🚶🏻‍➡️NPC',
-            5: '💩拉'
-        };
-
-        // Sort levels
-        const sortedLevels = Object.keys(groupedByLevel).sort((a, b) => Number(a) - Number(b));
-
-        return (
-            <div>
-                {sortedLevels.map((level) => {
-                    const items = groupedByLevel[level];
-                    const label = levelLabels[level];
-
-                    return (
-                        <div key={level}>
-                            {/* Only show heading if label exists */}
-                            {label && <h3>【{label}】</h3>}
-                            <ul>
-                                {items.map((item) => (
-                                    <li key={item.id}>{item.item_name}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    );
-                })}
-            </div>
-        );
-    };
-
-    const renderFeedContent = () => {
-        if (!feed) {
-            return <div className="iv-centered">你查看的内容不存在或已被删除</div>;
-        }
-
-        let messageContent;
-        if (feed.feedType === 'feedArticle') {
-            try {
-                const messageParts = JSON.parse(feed.message_raw_output);
-                messageContent = messageParts.map((part, index) => {
-                    if (part.type === 'text') {
-                        const formattedMessage = part.message.replace(/\\n/g, '\n');
-
-                        if (isMarkdownEnabled) {
-                            return (
-                                <div
-                                    key={index}
-                                    className="markdown-content"
-                                    dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(formattedMessage, false).replace(/\n/g, '  \n')) }}
-                                />
-                            );
-                        } else {
-                            const htmlMessage = formattedMessage.replace(/\n/g, '<br />');
-                            return <div key={index} dangerouslySetInnerHTML={{ __html: processHtmlLinks(htmlMessage, false) }} />;
-                        }
-                    } else if (part.type === 'image') {
-                        return (
-                            <figure key={index} className="iv-image-container">
-                                <img src={proxyImage(part.url)} alt={part.description || `feed-image-${index}`} className="iv-image" />
-                                {part.description && <figcaption className="iv-image-description">{part.description}</figcaption>}
-                            </figure>
-                        );
-                    }
-                    return null;
-                });
-            } catch (e) {
-                const processedMessage = processHtmlLinks(feed.message.replace(/\\n/g, '\n').replace(/\n/g, '<br />'), false);
-                messageContent = <div className="iv-pre-wrap" dangerouslySetInnerHTML={{ __html: processedMessage }} />;
-            }
-        } else {
-            if (isMarkdownEnabled) {
-                messageContent = (
-                    <>
-                        <div
-                            className="markdown-content"
-                            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(feed.message, false).replace(/\n/g, '  \n')) }}
-                        />
-                        {feed.picArr && feed.picArr.map((img, index) => (
-                            <figure key={index} className="iv-image-container">
-                                <img src={proxyImage(img)} alt={`image-${index}`} className="iv-image" />
-                            </figure>
-                        ))}
-                    </>
-                );
-            } else {
-                const processedMessage = processHtmlLinks(feed.message.replace(/\n/g, '<br />'), false);
-                messageContent = (
-                    <>
-                        <div dangerouslySetInnerHTML={{ __html: processedMessage }} />
-                        {feed.picArr && feed.picArr.map((img, index) => (
-                            <figure key={index} className="iv-image-container">
-                                <img src={proxyImage(img)} alt={`image-${index}`} className="iv-image" />
-                            </figure>
-                        ))}
-                    </>
-                );
-            }
-        }
-
-        return (
-            <>
-                {messageContent}
-                {renderProductAlbum()}
-            </>
-        );
-    };
-
-    if (error) {
-        return (
-            <div className="iv-centered">Error: {error}</div>
-        );
-    }
-
     if (error || !feed) {
         return (
             <div className="iv-container">
@@ -155,6 +32,79 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
             </div>
         );
     }
+
+    const renderText = (text, key) => isMarkdownEnabled ? (
+        <div
+            key={key}
+            className="markdown-content"
+            dangerouslySetInnerHTML={{ __html: md.render(decodeEntities(text, false).replace(/\n/g, '  \n')) }}
+        />
+    ) : (
+        <div key={key} dangerouslySetInnerHTML={{ __html: processHtmlLinks(text.replace(/\n/g, '<br />'), false) }} />
+    );
+
+    const renderImages = (images) => images?.map((img, index) => (
+        <figure key={index} className="iv-image-container">
+            <img src={proxyImage(img)} alt={`image-${index}`} className="iv-image" />
+        </figure>
+    ));
+
+    const renderProductAlbum = () => {
+        if (!feed.productAlbumDetailInfo?.length) return null;
+
+        const groupedByLevel = feed.productAlbumDetailInfo.reduce((acc, item) => {
+            (acc[item.level] ||= []).push(item);
+            return acc;
+        }, {});
+        const sortedLevels = Object.keys(groupedByLevel).sort((a, b) => Number(a) - Number(b));
+
+        return (
+            <div>
+                {sortedLevels.map((level) => (
+                    <div key={level}>
+                        {LEVEL_LABELS[level] && <h3>【{LEVEL_LABELS[level]}】</h3>}
+                        <ul>
+                            {groupedByLevel[level].map((item) => (
+                                <li key={item.id}>{item.item_name}</li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const renderMessage = () => {
+        if (feed.feedType !== 'feedArticle') {
+            return (
+                <>
+                    {renderText(feed.message || '')}
+                    {renderImages(feed.picArr)}
+                </>
+            );
+        }
+
+        const parts = parseArticleParts(feed);
+        if (!parts) {
+            const fallback = processHtmlLinks((feed.message || '').replace(/\\n/g, '\n').replace(/\n/g, '<br />'), false);
+            return <div className="iv-pre-wrap" dangerouslySetInnerHTML={{ __html: fallback }} />;
+        }
+
+        return parts.map((part, index) => {
+            if (part.type === 'text') {
+                return renderText(part.message.replace(/\\n/g, '\n'), index);
+            }
+            if (part.type === 'image') {
+                return (
+                    <figure key={index} className="iv-image-container">
+                        <img src={proxyImage(part.url)} alt={part.description || `feed-image-${index}`} className="iv-image" />
+                        {part.description && <figcaption className="iv-image-description">{part.description}</figcaption>}
+                    </figure>
+                );
+            }
+            return null;
+        });
+    };
 
     return (
         <>
@@ -234,7 +184,8 @@ const InstantViewPage = ({ feed, error, id, isMarkdownEnabled }) => {
                             </a>
                         </p>
                         <p></p>
-                        {renderFeedContent()}
+                        {renderMessage()}
+                        {renderProductAlbum()}
                     </section>
                 </article>
                 <footer className="iv-footer">
@@ -250,45 +201,21 @@ export async function getServerSideProps(context) {
     const { res, params, req } = context;
     const { id } = params;
 
-    const data = await fetchFeedData(id, req);
+    const { feed, error } = await fetchFeedData(id, req);
 
-    // 检测是否需要启用markdown
-    let isMarkdownEnabled = false;
-    if (data.props.feed) {
-        let contentToCheck = '';
-        if (data.props.feed.feedType === 'feedArticle' && data.props.feed.message_raw_output) {
-            try {
-                const messageParts = JSON.parse(data.props.feed.message_raw_output);
-                contentToCheck = messageParts
-                    .filter(p => p.type === 'text')
-                    .map(p => p.message)
-                    .join('\n');
-            } catch (e) {
-                contentToCheck = data.props.feed.message || '';
-            }
-        } else {
-            contentToCheck = data.props.feed.message || '';
-        }
-        isMarkdownEnabled = detectMarkdown(contentToCheck);
-    }
-
-    if (data.props.feed) {
-        res.setHeader(
-            'Cache-Control',
-            'public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600');
+    if (feed) {
+        res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600');
     } else {
         res.statusCode = 404;
-        res.setHeader(
-            'Cache-Control',
-            'public, max-age=60, s-maxage=60, stale-while-revalidate=0'
-        );
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=0');
     }
 
     return {
         props: {
-            ...data.props,
+            feed,
+            error,
             id,
-            isMarkdownEnabled
+            isMarkdownEnabled: feed ? detectMarkdown(getFeedPlainText(feed)) : false,
         }
     };
 }
