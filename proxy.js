@@ -51,15 +51,6 @@ export function proxy(request) {
     return new NextResponse('Forbidden', { status: 403, headers: { 'Cache-Control': 'no-store' } });
   }
 
-  // `vercel dev` hands every /api/* request to the Go functions, so pages link to /summary/:id instead.
-  const summaryMatch = pathname.match(/^\/summary\/([1-9]\d{0,15})$/);
-  if (summaryMatch) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/api/summary';
-    url.search = `?id=${summaryMatch[1]}`;
-    return NextResponse.rewrite(url);
-  }
-
   const pathMatch = pathname.match(/^\/(feed|picture|iv)\/([^/]+)$/);
 
   if (pathMatch) {
