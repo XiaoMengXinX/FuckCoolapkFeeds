@@ -9,11 +9,11 @@ import { ImageLightbox } from '../../components/feed/ImageLightbox';
 import AISummary from '../../components/feed/AISummary';
 import AdBanner from '../../components/feed/AdBanner';
 import { fetchFeedData } from '../../lib/internalApi';
-import { generateAISummary } from '../../lib/aiSummary';
+import { getSummaryInput } from '../../lib/aiSummary';
 import { optimizeFeedData } from '../../lib/feedOptimizer';
 import { styles } from '../../styles/feedStyles';
 
-const FeedPage = ({ feed, error, id, aiSummary, adClient, adSlot }) => {
+const FeedPage = ({ feed, error, id, hasAISummary, adClient, adSlot }) => {
     const [isBarVisible, setIsBarVisible] = useState(true);
     const [replyVisible, setReplyVisible] = useState(false);
     const replyRef = useRef(null);
@@ -107,7 +107,7 @@ const FeedPage = ({ feed, error, id, aiSummary, adClient, adSlot }) => {
                     </div>
                 </div>
             )}
-            <AISummary summary={aiSummary?.text} model={aiSummary?.model} />
+            {hasAISummary && <AISummary feedId={id} />}
             <div style={styles.content}>
                 <FeedContent
                     feed={feed}
@@ -204,10 +204,8 @@ export async function getServerSideProps(context) {
     const { id } = params;
 
     const { feed, error } = await fetchFeedData(id, req);
-    let aiSummary = null;
 
     if (feed) {
-        aiSummary = await generateAISummary(feed);
         res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600');
     } else {
         res.statusCode = 404;
@@ -219,7 +217,7 @@ export async function getServerSideProps(context) {
             feed: optimizeFeedData(feed),
             error,
             id,
-            aiSummary,
+            hasAISummary: Boolean(feed && getSummaryInput(feed)),
             adClient: process.env.ADSENSE_PUBLISHER_ID ?? null,
             adSlot: process.env.ADSENSE_AD_SLOT ?? null,
         }

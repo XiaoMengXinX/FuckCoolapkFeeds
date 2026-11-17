@@ -15,6 +15,55 @@
   }
 }
 
+/* AI 摘要生成动画 */
+@keyframes ai-summary-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes ai-summary-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.ai-summary-pending {
+  animation: ai-summary-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ai-summary-reveal {
+  from {
+    visibility: hidden;
+  }
+}
+
+/* 等待接口响应时先隐藏 300ms，缓存命中通常在此之前返回 */
+.ai-summary-pending.ai-summary-pending-delayed {
+  animation: ai-summary-reveal 0s 0.3s backwards, ai-summary-pulse 1.2s ease-in-out 0.3s infinite;
+}
+
+.ai-summary-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background-color: currentColor;
+  animation: ai-summary-blink 1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-summary-pending,
+  .ai-summary-caret {
+    animation: none;
+  }
+
+  .ai-summary-pending.ai-summary-pending-delayed {
+    animation: ai-summary-reveal 0s 0.3s backwards;
+  }
+}
+
 :root {
   --ai-summary-bg: #f8f9fa;
   --ai-summary-border: #e0e0e0;

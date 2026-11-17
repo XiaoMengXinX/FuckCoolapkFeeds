@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const LOCAL_HOST_PATTERN = /^(localhost|127(?:\.\d{1,3}){3}|\[::1\])(?::\d+)?$/i;
-const RESERVED_PATH_PATTERN = /^\/(?:api|feed|iv|reply|headlines|t|_next|picture)(?:\/|$)/;
+const RESERVED_PATH_PATTERN = /^\/(?:api|feed|iv|reply|headlines|t|_next|picture|summary)(?:\/|$)/;
 const ARCHIVE_UA_PATTERN = /(telegram|archive\.org|ia_archiver)/i;
 
 function redirectToPath(request, url, status = 301) {
@@ -38,13 +38,26 @@ function isSameOriginReferer(request) {
 export function proxy(request) {
   const { pathname, search } = request.nextUrl;
 
-  const isIframeContent =
+  // Iframe content and the AI summary endpoint are only requested by this site's own pages.
+  const requiresSameOrigin =
     pathname.startsWith('/headlines/') ||
     pathname.startsWith('/reply/') ||
+    pathname === '/api/summary' ||
+    pathname.startsWith('/summary/') ||
     /^\/t\/[^/]+\/\d+$/.test(pathname);
 
-  if (isIframeContent && process.env.NODE_ENV !== 'development' && !isSameOriginReferer(request)) {
-    return new NextResponse('Forbidden', { status: 403 });
+  if (requiresSameOrigin && process.env.NODE_ENV !== 'development' && !isSameOriginReferer(request)) {
+    // Cloudflare caches every path, so a cached 403 would block legitimate visitors.
+    return new NextResponse('Forbidden', { status: 403, headers: { 'Cache-Control': 'no-store' } });
+  }
+
+  // `vercel dev` hands every /api/* request to the Go functions, so pages link to /summary/:id instead.
+  const summaryMatch = pathname.match(/^\/summary\/([1-9]\d{0,15})$/);
+  if (summaryMatch) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/api/summary';
+    url.search = `?id=${summaryMatch[1]}`;
+    return NextResponse.rewrite(url);
   }
 
   const pathMatch = pathname.match(/^\/(feed|picture|iv)\/([^/]+)$/);
